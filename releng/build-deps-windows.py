@@ -73,6 +73,8 @@ NINJA = BOOTSTRAP_TOOLCHAIN_DIR / "bin" / "ninja.exe"
 
 ALL_PACKAGES: List[Package] = [
     ("zlib", PackageRole.LIBRARY, []),
+    ("brotli", PackageRole.LIBRARY, []),
+    ("minizip", PackageRole.LIBRARY, []),
     ("libffi", PackageRole.LIBRARY, []),
     ("glib", PackageRole.LIBRARY, []),
     ("pkg-config", PackageRole.TOOL, []),
@@ -100,6 +102,8 @@ ALL_BUNDLES = {
     ],
     Bundle.SDK: [
         "zlib",
+        "brotli",
+        "minizip",
         "libffi",
         "glib",
         "sqlite",
@@ -133,7 +137,7 @@ def main():
     parser.add_argument("--bundle", help="only build one specific bundle",
                         default=None, choices=[name.lower() for name in Bundle.__members__])
     parser.add_argument("--v8", help="whether to include V8 in the SDK",
-                        default='disabled', choices=['enabled', 'disabled'])
+                        default='enabled', choices=['enabled', 'disabled'])
 
     arguments = parser.parse_args()
 
@@ -749,13 +753,13 @@ def package(bundle_ids: List[Bundle], params: DependencyParameters):
             copy_files(BOOTSTRAP_TOOLCHAIN_DIR, toolchain_mixin_files, toolchain_tempdir)
             copy_files(prefixes_dir, toolchain_files, toolchain_tempdir, transform_toolchain_dest)
             fix_manifests(toolchain_tempdir)
-            (toolchain_tempdir / "VERSION.txt").write_text(params.toolchain_version + "\n", encoding='utf-8')
+            (toolchain_tempdir / "VERSION.txt").write_text(params.deps_version + "\n", encoding='utf-8')
 
         if Bundle.SDK in bundle_ids:
             sdk_tempdir = tempdir / "sdk-windows"
             copy_files(prefixes_dir, sdk_built_files, sdk_tempdir, transform_sdk_dest)
             fix_manifests(sdk_tempdir)
-            (sdk_tempdir / "VERSION.txt").write_text(params.sdk_version + "\n", encoding='utf-8')
+            (sdk_tempdir / "VERSION.txt").write_text(params.deps_version + "\n", encoding='utf-8')
 
         print("Compressing...")
         compression_switches = ["a", "-mx{}".format(COMPRESSION_LEVEL), "-sfx7zCon.sfx"]

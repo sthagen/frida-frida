@@ -106,7 +106,7 @@ if [ -z "$FRIDA_HOST" ]; then
 fi
 
 if [ "$host_os" == "android" ]; then
-  ndk_required=21
+  ndk_required=22
   if [ -n "$ANDROID_NDK_ROOT" ]; then
     if [ -f "$ANDROID_NDK_ROOT/source.properties" ]; then
       ndk_installed_version=$(grep Pkg.Revision "$ANDROID_NDK_ROOT/source.properties" | awk '{ split($NF, v, "."); print v[1]; }')
@@ -165,12 +165,12 @@ FRIDA_SDKROOT="$FRIDA_BUILD/${frida_env_name_prefix}sdk-${host_os_arch}"
 if [ -n "$FRIDA_TOOLCHAIN_VERSION" ]; then
   toolchain_version=$FRIDA_TOOLCHAIN_VERSION
 else
-  toolchain_version=$(grep "frida_toolchain_version =" "$FRIDA_RELENG/deps.mk" | awk '{ print $NF }')
+  toolchain_version=$(grep "frida_deps_version =" "$FRIDA_RELENG/deps.mk" | awk '{ print $NF }')
 fi
 if [ -n "$FRIDA_SDK_VERSION" ]; then
   sdk_version=$FRIDA_SDK_VERSION
 else
-  sdk_version=$(grep "frida_sdk_version =" "$FRIDA_RELENG/deps.mk" | awk '{ print $NF }')
+  sdk_version=$(grep "frida_deps_version =" "$FRIDA_RELENG/deps.mk" | awk '{ print $NF }')
 fi
 if [ "$enable_asan" == "yes" ]; then
   sdk_version="$sdk_version-asan"
@@ -720,11 +720,6 @@ case $host_os in
 
     meson_c_link_args="$base_linker_args"
     meson_cpp_link_args="$base_linker_args, $(flags_to_args "$libstdcxx_flags")"
-
-    if [ $android_api -lt 21 ]; then
-      # XXX: Meson's auto-detection fails as this is a Clang built-in.
-      meson_platform_properties+=("has_function_stpcpy = false")
-    fi
     ;;
   qnx)
     case $host_arch in
@@ -900,16 +895,20 @@ chmod 755 "$strip_wrapper"
 PKG_CONFIG=$FRIDA_BUILD/${FRIDA_ENV_NAME:-frida}-${host_os_arch}-pkg-config
 
 pkg_config="$FRIDA_TOOLROOT/bin/pkg-config"
-pkg_config_flags=""
+pkg_config_flags="--static"
 pkg_config_path="$FRIDA_PREFIX_LIB/pkgconfig"
+if [ "$FRIDA_ENV_NAME" == 'frida_gir' ]; then
+	pkg_config_path="/usr/lib/pkgconfig"
+	pkg_config_flags=""
+fi
 if [ "$FRIDA_ENV_SDK" != 'none' ]; then
-  pkg_config_flags=" --define-variable=frida_sdk_prefix=$FRIDA_SDKROOT"
+  pkg_config_flags=" $pkg_config_flags --define-variable=frida_sdk_prefix=$FRIDA_SDKROOT"
   pkg_config_path="$pkg_config_path:$FRIDA_SDKROOT/lib/pkgconfig"
 fi
 (
   echo "#!/bin/sh"
   echo "export PKG_CONFIG_PATH=\"$pkg_config_path\""
-  echo "exec \"$pkg_config\"$pkg_config_flags --static \"\$@\""
+  echo "exec \"$pkg_config\"$pkg_config_flags \"\$@\""
 ) > "$PKG_CONFIG"
 chmod 755 "$PKG_CONFIG"
 
@@ -925,7 +924,7 @@ fi
 (
   echo "export PATH=\"${env_path_sdk}${FRIDA_TOOLROOT}/bin:\$PATH\""
   echo "export PKG_CONFIG=\"$PKG_CONFIG\""
-  echo "export PKG_CONFIG_PATH=\"\""
+  echo "export PKG_CONFIG_PATH=\"$pkg_config_path\""
   echo "export VALAC=\"$VALAC\""
   echo "export CPP=\"$CPP\""
   echo "export CPPFLAGS=\"$CPPFLAGS\""
@@ -987,7 +986,7 @@ sed \
 (
   echo "export PATH=\"${env_path_sdk}${FRIDA_TOOLROOT}/bin:\$PATH\""
   echo "export PKG_CONFIG=\"$PKG_CONFIG\""
-  echo "export PKG_CONFIG_PATH=\"\""
+  echo "export PKG_CONFIG_PATH=\"$pkg_config_path\""
   echo "export VALAC=\"$VALAC\""
   echo "export CPPFLAGS=\"$CPPFLAGS\""
   echo "export CC=\"$CC\""

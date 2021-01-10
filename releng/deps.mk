@@ -1,6 +1,5 @@
-frida_toolchain_version = 20201214
-frida_sdk_version = 20201214
-frida_bootstrap_version = 20201208
+frida_deps_version = 20210105
+frida_bootstrap_version = 20201214
 
 
 frida_base_url = https://github.com/frida
@@ -123,7 +122,7 @@ zlib_deps = \
 zlib_deps_for_build = \
 	$(NULL)
 
-libffi_version = 183fff6038741f27738ea256a2477389cd64abdb
+libffi_version = 10d9cbec8b4537b8d1452c73f7651e95d22d0a17
 libffi_url = $(frida_base_url)/libffi.git
 libffi_hash = $(NULL)
 libffi_recipe = meson
@@ -136,7 +135,21 @@ libffi_deps = \
 libffi_deps_for_build = \
 	$(NULL)
 
-glib_version = 99c6c01ecb5c81d90592f1f0a3c93108c5e44359
+selinux_version = 9c7ba053bb075cace088d268fda400f6bc4ab14c
+selinux_url = $(frida_base_url)/selinux.git
+selinux_hash = $(NULL)
+selinux_recipe = meson
+selinux_patches = \
+	$(NULL)
+selinux_options = \
+	-Dregex=disabled \
+	$(NULL)
+selinux_deps = \
+	$(NULL)
+selinux_deps_for_build = \
+	$(NULL)
+
+glib_version = 75dc6f71f2a1970ea5bf4dc98f533ede2b843a15
 glib_url = $(frida_base_url)/glib.git
 glib_hash = $(NULL)
 glib_recipe = meson
@@ -212,7 +225,7 @@ bison_deps = \
 bison_deps_for_build = \
 	$(NULL)
 
-vala_version = 8b66e4b198b3c586f36a006a9acb6f93029add49
+vala_version = 13987f6286459d694c927c0773890d0569bb1f02
 vala_url = $(frida_base_url)/vala.git
 vala_hash = $(NULL)
 vala_recipe = meson
@@ -277,7 +290,42 @@ xz_deps = \
 xz_deps_for_build = \
 	$(NULL)
 
-sqlite_version = 9f21a054d5c24c2036e9d1b28c630ecda5ae24c3
+brotli_version = 753ac0f5855bcf8f980bd7c787ac56030b42db84
+brotli_url = $(frida_base_url)/brotli.git
+brotli_hash = $(NULL)
+brotli_recipe = meson
+brotli_patches = \
+	$(NULL)
+brotli_options = \
+	$(NULL)
+brotli_deps = \
+	$(NULL)
+brotli_deps_for_build = \
+	$(NULL)
+
+minizip_version = 4501ae619720d6769302eb792ae9389d878201f8
+minizip_url = $(frida_base_url)/minizip.git
+minizip_hash = $(NULL)
+minizip_recipe = meson
+minizip_patches = \
+	$(NULL)
+minizip_options = \
+	-Dzlib=enabled \
+	-Dlzma=disabled \
+	$(NULL)
+minizip_deps = \
+	zlib \
+	$(NULL)
+minizip_deps_for_build = \
+	$(NULL)
+ifeq ($(host_os), $(filter $(host_os),macos ios android qnx))
+minizip_deps += libiconv
+endif
+ifeq ($(FRIDA_LIBC), uclibc)
+minizip_deps += libiconv
+endif
+
+sqlite_version = b67ff8d8344c355ec322e1a838dd204416483be2
 sqlite_url = $(frida_base_url)/sqlite.git
 sqlite_hash = $(NULL)
 sqlite_recipe = meson
@@ -312,7 +360,7 @@ libunwind_deps = \
 libunwind_deps_for_build = \
 	$(NULL)
 
-glib_networking_version = 52f5c0ccc3115b2a8e370b183ebdaa30b1b920ff
+glib_networking_version = 2ecdf6b72efd1583862fd84c1a2728de71b15127
 glib_networking_url = $(frida_base_url)/glib-networking.git
 glib_networking_hash = $(NULL)
 glib_networking_recipe = meson
@@ -360,7 +408,7 @@ libgee_deps = \
 libgee_deps_for_build = \
 	$(NULL)
 
-json_glib_version = 9dd3b3898a2c41a1f9af24da8bab22e61526d299
+json_glib_version = 7a147f05da8c55dfd0845a8b4c998f88d5214746
 json_glib_url = $(frida_base_url)/json-glib.git
 json_glib_hash = $(NULL)
 json_glib_recipe = meson
@@ -416,6 +464,8 @@ libsoup_patches = \
 	$(NULL)
 libsoup_options = \
 	-Dgssapi=disabled \
+	-Dntlm=disabled \
+	-Dbrotli=enabled \
 	-Dtls_check=false \
 	-Dgnome=false \
 	-Dintrospection=disabled \
@@ -428,6 +478,7 @@ libsoup_deps = \
 	sqlite \
 	libpsl \
 	libxml2 \
+	brotli \
 	$(NULL)
 libsoup_deps_for_build = \
 	$(NULL)
@@ -490,6 +541,8 @@ openssl_url = https://www.openssl.org/source/openssl-$(openssl_version).tar.gz
 openssl_hash = e8be6a35fe41d10603c3cc635e93289ed00bf34b79671a3a4de64fcee00d5242
 openssl_recipe = custom
 openssl_patches = \
+	openssl-clang.patch \
+	openssl-android.patch \
 	openssl-armcap.patch \
 	$(NULL)
 openssl_options = \
@@ -779,12 +832,15 @@ symlinks-$1: build/$2-$3/manifest/$1.pkg
 	@sdkroot=build/sdk-$$(host_os_arch); \
 	if [ -d $$$$sdkroot ]; then \
 		cd $$$$sdkroot; \
-		for old_entry in $$$$(cat manifest/$1.pkg); do \
-			$(RM) $$$$old_entry; \
-		done; \
+		if [ -f manifest/$1.pkg ]; then \
+			for old_entry in $$$$(cat manifest/$1.pkg); do \
+				$(RM) $$$$old_entry; \
+			done; \
+		fi; \
 		for entry in $$$$(cat ../$2-$3/manifest/$1.pkg); do \
 			echo "✓ $$$$entry"; \
 			$(RM) $$$$entry; \
+			mkdir -p $$$$(dirname $$$$entry); \
 			original_relpath=$$$$($(PYTHON3) -c "import os.path; import sys; \
 				print(os.path.relpath('../$2-$3/$$$$entry', os.path.dirname('$$$$entry')))"); \
 			ln -s $$$$original_relpath $$$$entry; \
