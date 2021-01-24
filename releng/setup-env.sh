@@ -19,7 +19,7 @@ fi
 if [ -n "$FRIDA_LIBC" ]; then
   frida_libc=$FRIDA_LIBC
 else
-  frida_libc=glibc
+  frida_libc=gnu
 fi
 host_clang_arch=$(echo -n $host_arch | sed 's,^x86$,i386,')
 host_os_arch=${host_os}-${host_arch}
@@ -327,14 +327,14 @@ case $host_os in
         host_toolprefix="aarch64-linux-gnu-"
         ;;
       mips)
-        host_arch_flags="-march=mips1"
-        host_toolprefix="mips-unknown-linux-$frida_libc-"
+        host_arch_flags="-march=mips1 -mfp32"
+        host_toolprefix="mips-linux-$frida_libc-"
 
         meson_host_cpu="mips1"
         ;;
       mipsel)
-        host_arch_flags="-march=mips1"
-        host_toolprefix="mipsel-unknown-linux-$frida_libc-"
+        host_arch_flags="-march=mips1 -mfp32"
+        host_toolprefix="mipsel-linux-$frida_libc-"
 
         meson_host_cpu="mips1"
         ;;
@@ -898,7 +898,7 @@ pkg_config="$FRIDA_TOOLROOT/bin/pkg-config"
 pkg_config_flags="--static"
 pkg_config_path="$FRIDA_PREFIX_LIB/pkgconfig"
 if [ "$FRIDA_ENV_NAME" == 'frida_gir' ]; then
-	pkg_config_path="/usr/lib/pkgconfig"
+	pkg_config_path="$(pkg-config --variable pc_path pkg-config):$pkg_config_path"
 	pkg_config_flags=""
 fi
 if [ "$FRIDA_ENV_SDK" != 'none' ]; then
@@ -908,7 +908,7 @@ fi
 (
   echo "#!/bin/sh"
   echo "export PKG_CONFIG_PATH=\"$pkg_config_path\""
-  echo "exec \"$pkg_config\"$pkg_config_flags \"\$@\""
+  echo "exec \"$pkg_config\" $pkg_config_flags \"\$@\""
 ) > "$PKG_CONFIG"
 chmod 755 "$PKG_CONFIG"
 

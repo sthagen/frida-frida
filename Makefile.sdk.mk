@@ -267,7 +267,7 @@ ifeq ($(host_arch), arm64)
 openssl_arch_args := linux-aarch64
 endif
 ifeq ($(host_arch), $(filter $(host_arch), mips mipsel))
-openssl_arch_args := linux-mips32
+openssl_arch_args := linux-mips32 no-asm
 endif
 ifeq ($(host_arch), $(filter $(host_arch), mips64 mips64el))
 openssl_arch_args := linux-mips64
@@ -394,6 +394,18 @@ endif
 ifeq ($(host_arch), arm64e)
 v8_cpu := arm64
 v8_cpu_args := arm_version=83
+endif
+ifeq ($(host_arch), mips)
+v8_cpu := mips
+endif
+ifeq ($(host_arch), mipsel)
+v8_cpu := mipsel
+endif
+ifeq ($(host_arch), mips64)
+v8_cpu := mips64
+endif
+ifeq ($(host_arch), mips64el)
+v8_cpu := mips64el
 endif
 
 v8_build_os := $(shell echo $(build_os) | sed 's,^macos$$,mac,')

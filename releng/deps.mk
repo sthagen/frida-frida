@@ -1,5 +1,5 @@
-frida_deps_version = 20210105
-frida_bootstrap_version = 20201214
+frida_deps_version = 20210123
+frida_bootstrap_version = 20210105
 
 
 frida_base_url = https://github.com/frida
@@ -122,7 +122,7 @@ zlib_deps = \
 zlib_deps_for_build = \
 	$(NULL)
 
-libffi_version = 10d9cbec8b4537b8d1452c73f7651e95d22d0a17
+libffi_version = b2ec2430601562a33e75470a3db044d4279b7955
 libffi_url = $(frida_base_url)/libffi.git
 libffi_hash = $(NULL)
 libffi_recipe = meson
@@ -149,7 +149,7 @@ selinux_deps = \
 selinux_deps_for_build = \
 	$(NULL)
 
-glib_version = 75dc6f71f2a1970ea5bf4dc98f533ede2b843a15
+glib_version = d1325e4f3bd4787cc833e5bb42e8f59467a6a0c7
 glib_url = $(frida_base_url)/glib.git
 glib_hash = $(NULL)
 glib_recipe = meson
@@ -167,6 +167,9 @@ glib_options = \
 	-Dlibmount=disabled \
 	-Dinternal_pcre=true \
 	-Dtests=false \
+	-Dglib_debug=disabled \
+	-Dglib_assert=false \
+	-Dglib_checks=false \
 	$(NULL)
 ifeq ($(host_os), $(filter $(host_os),macos ios))
 # Use Apple's iconv by default to make our toolchain smaller.
@@ -225,7 +228,7 @@ bison_deps = \
 bison_deps_for_build = \
 	$(NULL)
 
-vala_version = 13987f6286459d694c927c0773890d0569bb1f02
+vala_version = c2a3f42f71caae18dfad837a96a901531cce7938
 vala_url = $(frida_base_url)/vala.git
 vala_hash = $(NULL)
 vala_recipe = meson
@@ -561,7 +564,7 @@ openssl_deps = \
 openssl_deps_for_build = \
 	$(NULL)
 
-v8_version = e73a3d4f4778a902223698addb8564a04fc28cb5
+v8_version = 35fc430315daa11147829be927663ff049f0b149
 v8_url = $(frida_base_url)/v8.git
 v8_hash = $(NULL)
 v8_recipe = custom
