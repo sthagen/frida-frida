@@ -21,10 +21,27 @@ if [ -n "$FRIDA_LIBC" ]; then
 else
   frida_libc=gnu
 fi
-host_clang_arch=$(echo -n $host_arch | sed 's,^x86$,i386,')
+case $host_arch in
+  x86)
+    host_clang_arch=i386
+    ;;
+  arm64eoabi)
+    host_clang_arch=arm64e
+    ;;
+  *)
+    host_clang_arch=$host_arch
+    ;;
+esac
 host_os_arch=${host_os}-${host_arch}
 
-meson_host_system=$(echo $host_os | sed 's,^macos$,darwin,' | sed 's,^ios$,darwin,')
+case $host_os in
+  macos|ios)
+    meson_host_system=darwin
+    ;;
+  *)
+    meson_host_system=$host_os
+    ;;
+esac
 case $host_arch in
   i?86)
     meson_host_cpu_family=x86
@@ -51,7 +68,7 @@ case $host_arch in
     meson_host_cpu=armv7hf
     meson_host_endian=little
     ;;
-  arm64|arm64e)
+  arm64|arm64e|arm64eoabi)
     meson_host_cpu_family=aarch64
     meson_host_cpu=aarch64
     meson_host_endian=little
@@ -155,9 +172,9 @@ fi
 pushd $releng_path/../ > /dev/null
 FRIDA_ROOT=`pwd`
 popd > /dev/null
-FRIDA_BUILD="$FRIDA_ROOT/build"
+FRIDA_BUILD="${FRIDA_BUILD:-$FRIDA_ROOT/build}"
 FRIDA_RELENG="$FRIDA_ROOT/releng"
-FRIDA_PREFIX="$FRIDA_BUILD/${FRIDA_ENV_NAME:-frida}-${host_os_arch}"
+FRIDA_PREFIX="${FRIDA_PREFIX:-$FRIDA_BUILD/${FRIDA_ENV_NAME:-frida}-${host_os_arch}}"
 FRIDA_PREFIX_LIB="$FRIDA_PREFIX/lib"
 FRIDA_TOOLROOT="$FRIDA_BUILD/${frida_env_name_prefix}toolchain-${build_os_arch}"
 FRIDA_SDKROOT="$FRIDA_BUILD/${frida_env_name_prefix}sdk-${host_os_arch}"
@@ -290,6 +307,17 @@ flags_to_args () {
 }
 
 mkdir -p "$FRIDA_BUILD"
+
+if [ "$host_arch" == "arm64eoabi" ]; then
+  export DEVELOPER_DIR="/Applications/Xcode-11.7.app"
+fi
+
+xcrun="xcrun"
+if [ "$build_os_arch" == "macos-arm64" ]; then
+  if xcrun --show-sdk-path 2>&1 | grep -q "not a compatible arch"; then
+    xcrun="arch -x86_64 xcrun"
+  fi
+fi
 
 case $host_os in
   linux)
@@ -433,11 +461,11 @@ case $host_os in
     if [ $host_arch = x86 ] && [ -n "$MACOS_X86_SDK_ROOT" ]; then
       macos_sdk_path="$MACOS_X86_SDK_ROOT"
     else
-      macos_sdk_path="$(xcrun --sdk $macos_sdk --show-sdk-path)"
+      macos_sdk_path="$($xcrun --sdk $macos_sdk --show-sdk-path)"
     fi
 
-    clang_cc="$(xcrun --sdk $macos_sdk -f clang)"
-    clang_cxx="$(xcrun --sdk $macos_sdk -f clang++)"
+    clang_cc="$($xcrun --sdk $macos_sdk -f clang)"
+    clang_cxx="$($xcrun --sdk $macos_sdk -f clang++)"
 
     cc_wrapper=$FRIDA_BUILD/${FRIDA_ENV_NAME:-frida}-${host_os_arch}-clang
     sed \
@@ -466,8 +494,8 @@ case $host_os in
 
     ar_wrapper=$FRIDA_BUILD/${FRIDA_ENV_NAME:-frida}-${host_os_arch}-ar
     sed \
-      -e "s,@ar@,$(xcrun --sdk $macos_sdk -f ar),g" \
-      -e "s,@libtool@,$(xcrun --sdk $macos_sdk -f libtool),g" \
+      -e "s,@ar@,$($xcrun --sdk $macos_sdk -f ar),g" \
+      -e "s,@libtool@,$($xcrun --sdk $macos_sdk -f libtool),g" \
       "$FRIDA_RELENG/ar-wrapper-xcode.sh.in" > "$ar_wrapper"
     chmod +x "$ar_wrapper"
 
@@ -476,19 +504,19 @@ case $host_os in
     CXX="$cxx_wrapper"
     OBJC="$cc_wrapper"
     OBJCXX="$cxx_wrapper"
-    LD="$(xcrun --sdk $macos_sdk -f ld)"
+    LD="$($xcrun --sdk $macos_sdk -f ld)"
 
     AR="$ar_wrapper"
     NM="$FRIDA_ROOT/releng/llvm-nm-macos-x86_64"
-    RANLIB="$(xcrun --sdk $macos_sdk -f ranlib)"
-    LIBTOOL="$(xcrun --sdk $macos_sdk -f libtool)"
-    STRIP="$(xcrun --sdk $macos_sdk -f strip)"
+    RANLIB="$($xcrun --sdk $macos_sdk -f ranlib)"
+    LIBTOOL="$($xcrun --sdk $macos_sdk -f libtool)"
+    STRIP="$($xcrun --sdk $macos_sdk -f strip)"
     STRIP_FLAGS="-Sx"
 
-    INSTALL_NAME_TOOL="$(xcrun --sdk $macos_sdk -f install_name_tool)"
-    OTOOL="$(xcrun --sdk $macos_sdk -f otool)"
-    CODESIGN="$(xcrun --sdk $macos_sdk -f codesign)"
-    LIPO="$(xcrun --sdk $macos_sdk -f lipo)"
+    INSTALL_NAME_TOOL="$($xcrun --sdk $macos_sdk -f install_name_tool)"
+    OTOOL="$($xcrun --sdk $macos_sdk -f otool)"
+    CODESIGN="$($xcrun --sdk $macos_sdk -f codesign)"
+    LIPO="$($xcrun --sdk $macos_sdk -f lipo)"
 
     CPPFLAGS="-mmacosx-version-min=$macos_minver"
     CXXFLAGS="-stdlib=libc++"
@@ -529,13 +557,13 @@ case $host_os in
         ;;
     esac
     if [ -z "$IOS_SDK_ROOT" ]; then
-      ios_sdk_path="$(xcrun --sdk $ios_sdk --show-sdk-path)"
+      ios_sdk_path="$($xcrun --sdk $ios_sdk --show-sdk-path)"
     else
       ios_sdk_path="$IOS_SDK_ROOT"
     fi
 
-    clang_cc="$(xcrun --sdk $ios_sdk -f clang)"
-    clang_cxx="$(xcrun --sdk $ios_sdk -f clang++)"
+    clang_cc="$($xcrun --sdk $ios_sdk -f clang)"
+    clang_cxx="$($xcrun --sdk $ios_sdk -f clang++)"
 
     case $host_clang_arch in
       arm)
@@ -573,8 +601,8 @@ case $host_os in
 
     ar_wrapper=$FRIDA_BUILD/${FRIDA_ENV_NAME:-frida}-${host_os_arch}-ar
     sed \
-      -e "s,@ar@,$(xcrun --sdk $ios_sdk -f ar),g" \
-      -e "s,@libtool@,$(xcrun --sdk $ios_sdk -f libtool),g" \
+      -e "s,@ar@,$($xcrun --sdk $ios_sdk -f ar),g" \
+      -e "s,@libtool@,$($xcrun --sdk $ios_sdk -f libtool),g" \
       "$FRIDA_RELENG/ar-wrapper-xcode.sh.in" > "$ar_wrapper"
     chmod +x "$ar_wrapper"
 
@@ -583,19 +611,19 @@ case $host_os in
     CXX="$cxx_wrapper"
     OBJC="$cc_wrapper"
     OBJCXX="$cxx_wrapper"
-    LD="$(xcrun --sdk $ios_sdk -f ld)"
+    LD="$($xcrun --sdk $ios_sdk -f ld)"
 
     AR="$ar_wrapper"
     NM="$FRIDA_ROOT/releng/llvm-nm-macos-x86_64"
-    RANLIB="$(xcrun --sdk $ios_sdk -f ranlib)"
-    LIBTOOL="$(xcrun --sdk $ios_sdk -f libtool)"
-    STRIP="$(xcrun --sdk $ios_sdk -f strip)"
+    RANLIB="$($xcrun --sdk $ios_sdk -f ranlib)"
+    LIBTOOL="$($xcrun --sdk $ios_sdk -f libtool)"
+    STRIP="$($xcrun --sdk $ios_sdk -f strip)"
     STRIP_FLAGS="-Sx"
 
-    INSTALL_NAME_TOOL="$(xcrun --sdk $ios_sdk -f install_name_tool)"
-    OTOOL="$(xcrun --sdk $ios_sdk -f otool)"
-    CODESIGN="$(xcrun --sdk $ios_sdk -f codesign)"
-    LIPO="$(xcrun --sdk $ios_sdk -f lipo)"
+    INSTALL_NAME_TOOL="$($xcrun --sdk $ios_sdk -f install_name_tool)"
+    OTOOL="$($xcrun --sdk $ios_sdk -f otool)"
+    CODESIGN="$($xcrun --sdk $ios_sdk -f codesign)"
+    LIPO="$($xcrun --sdk $ios_sdk -f lipo)"
 
     CPPFLAGS="-miphoneos-version-min=$ios_minver"
     CXXFLAGS="-stdlib=libc++"
@@ -622,7 +650,16 @@ case $host_os in
     ;;
   android)
     android_build_os=$(echo ${build_os} | sed 's,^macos$,darwin,')
-    android_toolroot="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/${android_build_os}-${build_arch}"
+    case $build_os in
+      macos)
+        # NDK does not yet support Apple Silicon.
+        android_build_arch=x86_64
+        ;;
+      *)
+        android_build_arch=${build_arch}
+        ;;
+    esac
+    android_toolroot="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/${android_build_os}-${android_build_arch}"
 
     host_arch_flags=""
     host_cflags=""
@@ -849,10 +886,10 @@ CFLAGS="-fPIC $CFLAGS"
 CXXFLAGS="$CFLAGS${CXXFLAGS:+ $CXXFLAGS}"
 
 if [ "$FRIDA_ENV_SDK" != 'none' ]; then
-  version_include="-include $FRIDA_BUILD/frida-version.h"
+  version_include="-include $FRIDA_ROOT/build/frida-version.h"
   CPPFLAGS="$version_include $CPPFLAGS"
 
-  meson_version_include=", '-include', '$FRIDA_BUILD/frida-version.h'"
+  meson_version_include=", '-include', '$FRIDA_ROOT/build/frida-version.h'"
 else
   meson_version_include=""
 fi
@@ -898,8 +935,8 @@ pkg_config="$FRIDA_TOOLROOT/bin/pkg-config"
 pkg_config_flags="--static"
 pkg_config_path="$FRIDA_PREFIX_LIB/pkgconfig"
 if [ "$FRIDA_ENV_NAME" == 'frida_gir' ]; then
-	pkg_config_path="$(pkg-config --variable pc_path pkg-config):$pkg_config_path"
-	pkg_config_flags=""
+  pkg_config_path="$(pkg-config --variable pc_path pkg-config):$pkg_config_path"
+  pkg_config_flags=""
 fi
 if [ "$FRIDA_ENV_SDK" != 'none' ]; then
   pkg_config_flags=" $pkg_config_flags --define-variable=frida_sdk_prefix=$FRIDA_SDKROOT"
@@ -912,8 +949,8 @@ fi
 ) > "$PKG_CONFIG"
 chmod 755 "$PKG_CONFIG"
 
-env_rc=build/${FRIDA_ENV_NAME:-frida}-env-${host_os_arch}.rc
-meson_env_rc=build/${FRIDA_ENV_NAME:-frida}-meson-env-${host_os_arch}.rc
+env_rc=${FRIDA_BUILD}/${FRIDA_ENV_NAME:-frida}-env-${host_os_arch}.rc
+meson_env_rc=${FRIDA_BUILD}/${FRIDA_ENV_NAME:-frida}-meson-env-${host_os_arch}.rc
 
 if [ "$FRIDA_ENV_SDK" != 'none' ]; then
   env_path_sdk="$FRIDA_SDKROOT/bin:"
@@ -1031,15 +1068,21 @@ case $host_os in
     ;;
 esac
 
-build_env_rc=build/${FRIDA_ENV_NAME:-frida}-meson-env-${build_os_arch}.rc
+build_env_rc=${FRIDA_BUILD}/${FRIDA_ENV_NAME:-frida}-meson-env-${build_os_arch}.rc
 if [ ! -f $build_env_rc ]; then
-  FRIDA_HOST=${build_os_arch} releng/setup-env.sh
+  FRIDA_HOST=${build_os_arch} \
+      FRIDA_BUILD="$FRIDA_BUILD" \
+      FRIDA_PREFIX="" \
+      FRIDA_ACOPTFLAGS="$FRIDA_ACOPTFLAGS" \
+      FRIDA_ACDBGFLAGS="$FRIDA_ACDBGFLAGS" \
+      FRIDA_ASAN=$FRIDA_ASAN \
+      releng/setup-env.sh
 fi
 egrep "^export (PKG_CONFIG|CC|CXX|OBJC|OBJCXX|CPPFLAGS|CFLAGS|CXXFLAGS|CC_LD|CXX_LD|OBJC_LD|OBJCXX_LD|LDFLAGS|AR)=" $build_env_rc \
   | sed -e "s,=,_FOR_BUILD=," \
   >> $meson_env_rc
 
-meson_cross_file=build/${FRIDA_ENV_NAME:-frida}-${host_os_arch}.txt
+meson_cross_file=${FRIDA_BUILD}/${FRIDA_ENV_NAME:-frida}-${host_os_arch}.txt
 
 (
   echo "[constants]"
