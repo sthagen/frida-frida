@@ -36,7 +36,7 @@ packages += selinux
 endif
 
 ifeq ($(host_os), $(filter $(host_os), macos ios linux android))
-packages += glib-networking
+packages += glib-networking libnice
 endif
 
 ifneq ($(FRIDA_V8), disabled)
@@ -48,8 +48,30 @@ endif
 endif
 endif
 
-ifeq ($(host_arch), $(filter $(host_arch), x86 x86_64 arm armbe8 armeabi armhf arm64 arm64e))
+ifeq ($(host_arch), $(filter $(host_arch), x86 x86_64 arm armbe8 armeabi armhf arm64 arm64e arm64eoabi))
 packages += tinycc
+endif
+
+ifeq ($(host_os_arch), ios-arm64eoabi)
+xcode_env_setup := export DEVELOPER_DIR="$(XCODE11)/Contents/Developer"
+xcode_run := arch -x86_64 xcrun
+else
+xcode_env_setup := true
+xcode_run := xcrun
+endif
+ifeq ($(host_os), macos)
+xcode_platform := MacOSX
+endif
+ifeq ($(host_os), ios)
+ifeq ($(host_arch), $(filter $(host_arch), x86 x86_64))
+xcode_platform := iPhoneSimulator
+else
+xcode_platform := iPhoneOS
+endif
+endif
+ifeq ($(host_os), $(filter $(host_os), macos ios))
+xcode_developer_dir := $(shell $(xcode_env_setup); xcode-select -print-path)
+xcode_sdk_version := $(shell $(xcode_env_setup); $(xcode_run) --sdk $(shell echo $(xcode_platform) | tr A-Z a-z) --show-sdk-version | cut -f1-2 -d'.')
 endif
 
 
@@ -105,7 +127,7 @@ build/fs-tmp-%/.package-stamp: $(foreach pkg, $(packages), build/fs-%/manifest/$
 			| tar -C $(abspath $(@D)/package) -xf -
 	@releng/pkgify.sh $(@D)/package $(abspath build/fs-$*) $(abspath releng)
 ifeq ($(host_os), ios)
-	@cp $(shell xcrun --sdk macosx --show-sdk-path)/usr/include/mach/mach_vm.h \
+	@cp $(shell $(xcode_env_setup); $(xcode_run) --sdk macosx --show-sdk-path)/usr/include/mach/mach_vm.h \
 		$(@D)/package/include/frida_mach_vm.h
 endif
 	@echo "$(frida_deps_version)" > $(@D)/package/VERSION.txt
@@ -194,8 +216,6 @@ endif
 
 ifeq ($(host_os), $(filter $(host_os), macos ios))
 
-xcode_developer_dir := $(shell xcode-select -print-path)
-
 ifeq ($(host_os_arch), macos-x86)
 openssl_arch_args := macos-i386
 endif
@@ -208,36 +228,28 @@ endif
 ifeq ($(host_os_arch), macos-arm64e)
 openssl_arch_args := macos64-cross-arm64e enable-ec_nistp_64_gcc_128
 endif
-ifeq ($(host_os), macos)
-xcode_platform := MacOSX
-endif
 
 ifeq ($(host_os_arch), ios-x86)
 openssl_arch_args := ios-sim-cross-i386
-xcode_platform := iPhoneSimulator
 endif
 ifeq ($(host_os_arch), ios-x86_64)
 openssl_arch_args := ios-sim-cross-x86_64 enable-ec_nistp_64_gcc_128
-xcode_platform := iPhoneSimulator
 endif
 ifeq ($(host_os_arch), ios-arm)
 openssl_arch_args := ios-cross-armv7 -D__ARM_MAX_ARCH__=7
-xcode_platform := iPhoneOS
 endif
 ifeq ($(host_os_arch), ios-arm64)
 openssl_arch_args := ios64-cross-arm64 enable-ec_nistp_64_gcc_128
-xcode_platform := iPhoneOS
 endif
-ifeq ($(host_os_arch), ios-arm64e)
+ifeq ($(host_os_arch), $(filter $(host_os_arch), ios-arm64e ios-arm64eoabi))
 openssl_arch_args := ios64-cross-arm64e enable-ec_nistp_64_gcc_128
-xcode_platform := iPhoneOS
 endif
 
 openssl_host_env := \
 	CPP=clang CC=clang CXX=clang++ LD= LDFLAGS= AR= RANLIB= \
 	CROSS_COMPILE="$(xcode_developer_dir)/Toolchains/XcodeDefault.xctoolchain/usr/bin/" \
 	CROSS_TOP="${xcode_developer_dir}/Platforms/$(xcode_platform).platform/Developer" \
-	CROSS_SDK=$(xcode_platform)$(shell xcrun --sdk $(shell echo $(xcode_platform) | tr A-Z a-z) --show-sdk-version | cut -f1-2 -d'.').sdk \
+	CROSS_SDK=$(xcode_platform)$(xcode_sdk_version).sdk \
 	IOS_MIN_SDK_VERSION=8.0 \
 	CONFIG_DISABLE_BITCODE=true \
 	$(NULL)
@@ -395,7 +407,7 @@ endif
 ifeq ($(host_arch), arm64)
 v8_cpu := arm64
 endif
-ifeq ($(host_arch), arm64e)
+ifeq ($(host_arch), $(filter $(host_arch), arm64e arm64eoabi))
 v8_cpu := arm64
 v8_cpu_args := arm_version=83
 endif
@@ -433,7 +445,7 @@ v8_platform_args := \
 	$(NULL)
 endif
 ifeq ($(host_os), $(filter $(host_os), macos ios))
-ifeq ($(host_arch), $(filter $(host_arch), arm64 arm64e))
+ifeq ($(host_arch), $(filter $(host_arch), arm64 arm64e arm64eoabi))
 v8_platform_args += v8_enable_pointer_compression=false
 endif
 endif
@@ -558,6 +570,7 @@ build/fs-tmp-%/v8/build.ninja: deps/v8-checkout/v8 build/fs-$(build_os_arch)/man
 	@mkdir -p $(@D)
 	@(set -x \
 		&& cd deps/v8-checkout/v8 \
+		&& $(xcode_env_setup) \
 		&& ../../../build/fs-$(build_os_arch)/bin/gn \
 			gen $(abspath $(@D)) \
 			--args='$(strip \
@@ -576,6 +589,7 @@ build/fs-%/manifest/v8.pkg: build/fs-tmp-%/v8/build.ninja
 	srcdir=deps/v8-checkout/v8; \
 	builddir=build/fs-tmp-$*/v8; \
 	(set -x \
+		&& $(xcode_env_setup) \
 		&& $(NINJA) -C $$builddir v8_monolith \
 		&& install -d $$prefix/include/v8-$(v8_api_version)/v8 \
 		&& install -m 644 $$srcdir/include/*.h $$prefix/include/v8-$(v8_api_version)/v8/ \
@@ -630,6 +644,7 @@ build/fs-%/manifest/libcxx.pkg: build/fs-%/manifest/v8.pkg
 	srcdir=deps/v8-checkout/v8; \
 	builddir=build/fs-tmp-$*/v8; \
 	(set -x \
+		&& $(xcode_env_setup) \
 		&& $(NINJA) -C $$builddir libc++ \
 		&& install -d $$prefix/include/c++/ \
 		&& cp -a $$srcdir/buildtools/third_party/libc++/trunk/include/* $$prefix/include/c++/ \
@@ -649,10 +664,10 @@ build/fs-%/manifest/libcxx.pkg: build/fs-%/manifest/v8.pkg
 			$$srcdir/buildtools/third_party/libc++/trunk/include/__config \
 			> $$prefix/include/c++/__config \
 		&& install -d $$prefix/lib/c++ \
-		&& $(shell xcrun -f libtool) -static -no_warning_for_no_symbols \
+		&& $$($(xcode_run) -f libtool) -static -no_warning_for_no_symbols \
 			-o $$prefix/lib/c++/libc++abi.a \
 			$$builddir/obj/buildtools/third_party/libc++abi/libc++abi/*.o \
-		&& $(shell xcrun -f libtool) -static -no_warning_for_no_symbols \
+		&& $$($(xcode_run) -f libtool) -static -no_warning_for_no_symbols \
 			-o $$prefix/lib/c++/libc++.a \
 			$$builddir/obj/buildtools/third_party/libc++/libc++/*.o \
 	) >$$builddir/libcxx-build.log 2>&1 \
@@ -665,14 +680,19 @@ build/fs-%/manifest/libcxx.pkg: build/fs-%/manifest/v8.pkg
 
 
 build/fs-env-%.rc:
-	@FRIDA_HOST=$* \
-		FRIDA_ACOPTFLAGS="$(FRIDA_ACOPTFLAGS_BOTTLE)" \
-		FRIDA_ACDBGFLAGS="$(FRIDA_ACDBGFLAGS_BOTTLE)" \
-		FRIDA_ASAN=$(FRIDA_ASAN) \
-		FRIDA_ENV_NAME=fs \
-		FRIDA_ENV_SDK=none \
-		FRIDA_TOOLCHAIN_VERSION=$(frida_bootstrap_version) \
-		./releng/setup-env.sh
+	@for os_arch in $(build_os_arch) $*; do \
+		if [ ! -f build/fs-env-$$os_arch.rc ]; then \
+			FRIDA_HOST=$$os_arch \
+			FRIDA_ACOPTFLAGS="$(FRIDA_ACOPTFLAGS_BOTTLE)" \
+			FRIDA_ACDBGFLAGS="$(FRIDA_ACDBGFLAGS_BOTTLE)" \
+			FRIDA_ASAN=$(FRIDA_ASAN) \
+			FRIDA_ENV_NAME=fs \
+			FRIDA_ENV_SDK=none \
+			FRIDA_TOOLCHAIN_VERSION=$(frida_bootstrap_version) \
+			XCODE11="$(XCODE11)" \
+			./releng/setup-env.sh || exit 1; \
+		fi \
+	done
 
 releng/meson/meson.py:
 	git submodule init releng/meson

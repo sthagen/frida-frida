@@ -1,5 +1,5 @@
-frida_deps_version = 20210123
-frida_bootstrap_version = 20210105
+frida_deps_version = 20210407
+frida_bootstrap_version = 20210331
 
 
 frida_base_url = https://github.com/frida
@@ -397,6 +397,26 @@ glib_schannel_deps = \
 glib_schannel_deps_for_build = \
 	$(NULL)
 
+libnice_version = b9c02e4f7b3d797208acc435da2fa8d9d989d0d7
+libnice_url = $(frida_base_url)/libnice.git
+libnice_hash = $(NULL)
+libnice_recipe = meson
+libnice_patches = \
+	$(NULL)
+libnice_options = \
+	-Dgupnp=disabled \
+	-Dgstreamer=disabled \
+	-Dexamples=disabled \
+	-Dtests=disabled \
+	-Dintrospection=disabled \
+	$(NULL)
+libnice_deps = \
+	glib \
+	openssl \
+	$(NULL)
+libnice_deps_for_build = \
+	$(NULL)
+
 libgee_version = c7e96ac037610cc3d0e11dc964b7b1fca479fc2a
 libgee_url = $(frida_base_url)/libgee.git
 libgee_hash = $(NULL)
@@ -486,7 +506,7 @@ libsoup_deps = \
 libsoup_deps_for_build = \
 	$(NULL)
 
-capstone_version = 03295d19d2c3b0162118a6d9742312301cde1d00
+capstone_version = 5002dd1384ff716628ddc1a8914dd196c171109c
 capstone_url = $(frida_base_url)/capstone.git
 capstone_hash = $(NULL)
 capstone_recipe = meson
@@ -505,11 +525,12 @@ capstone_archs := $(shell echo $(host_arch) | sed $(sed_regex_option) \
 		-e 's,^x86_64$$,x86,' \
 		-e 's,^arm[^0-9].+,arm,' \
 		-e 's,^arm64e$$,arm64,' \
+		-e 's,^arm64eoabi$$,arm64,' \
 		-e 's,^mips.*,mips,' \
 		-e 's,^s390x$$,sysz,' \
 	)
 
-quickjs_version = 3026500048050c6e29ea376dcd8207af27a25d13
+quickjs_version = 923440e698c33753f8b054e33624680203d268e5
 quickjs_url = $(frida_base_url)/quickjs.git
 quickjs_hash = $(NULL)
 quickjs_recipe = meson
@@ -539,17 +560,17 @@ tinycc_deps = \
 tinycc_deps_for_build = \
 	$(NULL)
 
-openssl_version = 1.1.1i
+openssl_version = 1.1.1k
 openssl_url = https://www.openssl.org/source/openssl-$(openssl_version).tar.gz
-openssl_hash = e8be6a35fe41d10603c3cc635e93289ed00bf34b79671a3a4de64fcee00d5242
+openssl_hash = 892a0875b9872acd04a9fde79b1f943075d5ea162415de3047c327df33fbaee5
 openssl_recipe = custom
 openssl_patches = \
-	openssl-clang.patch \
 	openssl-android.patch \
 	openssl-armcap.patch \
 	$(NULL)
 openssl_options = \
 	--openssldir=/etc/ssl \
+	no-dso \
 	no-engine \
 	no-tests \
 	no-comp \
