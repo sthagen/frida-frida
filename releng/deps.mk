@@ -1,5 +1,5 @@
-frida_deps_version = 20210419
-frida_bootstrap_version = 20210407
+frida_deps_version = 20210708
+frida_bootstrap_version = 20210607
 
 
 frida_base_url = https://github.com/frida
@@ -149,7 +149,7 @@ selinux_deps = \
 selinux_deps_for_build = \
 	$(NULL)
 
-glib_version = d1325e4f3bd4787cc833e5bb42e8f59467a6a0c7
+glib_version = 6d3a90e5c670b4fb37633c0ac8c285c259615b3e
 glib_url = $(frida_base_url)/glib.git
 glib_hash = $(NULL)
 glib_recipe = meson
@@ -228,7 +228,7 @@ bison_deps = \
 bison_deps_for_build = \
 	$(NULL)
 
-vala_version = c2a3f42f71caae18dfad837a96a901531cce7938
+vala_version = e4b85234cecf627336d6dfaab47a6ea8fb5dc025
 vala_url = $(frida_base_url)/vala.git
 vala_hash = $(NULL)
 vala_recipe = meson
@@ -363,7 +363,7 @@ libunwind_deps = \
 libunwind_deps_for_build = \
 	$(NULL)
 
-glib_networking_version = 2ecdf6b72efd1583862fd84c1a2728de71b15127
+glib_networking_version = 0ef1a69313d0143bb903c4de9f175f560123b93c
 glib_networking_url = $(frida_base_url)/glib-networking.git
 glib_networking_hash = $(NULL)
 glib_networking_recipe = meson
@@ -383,21 +383,7 @@ glib_networking_deps = \
 glib_networking_deps_for_build = \
 	$(NULL)
 
-glib_schannel_version = 7e8db12466b1337358611fa79f920e153430be31
-glib_schannel_url = $(frida_base_url)/glib-schannel.git
-glib_schannel_hash = $(NULL)
-glib_schannel_recipe = meson
-glib_schannel_patches = \
-	$(NULL)
-glib_schannel_options = \
-	$(NULL)
-glib_schannel_deps = \
-	glib \
-	$(NULL)
-glib_schannel_deps_for_build = \
-	$(NULL)
-
-libnice_version = a0ed8c9afaeb7ddd08687d888d432b09416be374
+libnice_version = a79e99251cd44cd1c8296422bf7c8314ae1ceb75
 libnice_url = $(frida_base_url)/libnice.git
 libnice_hash = $(NULL)
 libnice_recipe = meson
@@ -406,6 +392,7 @@ libnice_patches = \
 libnice_options = \
 	-Dgupnp=disabled \
 	-Dgstreamer=disabled \
+	-Dcrypto-library=openssl \
 	-Dexamples=disabled \
 	-Dtests=disabled \
 	-Dintrospection=disabled \
@@ -417,7 +404,23 @@ libnice_deps = \
 libnice_deps_for_build = \
 	$(NULL)
 
-libgee_version = c7e96ac037610cc3d0e11dc964b7b1fca479fc2a
+usrsctp_version = 2020cb9c6cc1c26a848cd352d46ea36b11cacbe0
+usrsctp_url = $(frida_base_url)/usrsctp.git
+usrsctp_hash = $(NULL)
+usrsctp_recipe = meson
+usrsctp_patches = \
+	$(NULL)
+usrsctp_options = \
+	-Dsctp_inet=false \
+	-Dsctp_inet6=false \
+	-Dsctp_build_programs=false \
+	$(NULL)
+usrsctp_deps = \
+	$(NULL)
+usrsctp_deps_for_build = \
+	$(NULL)
+
+libgee_version = efe80dbdc63fb5aeb4d0f6999fa19621efb1865c
 libgee_url = $(frida_base_url)/libgee.git
 libgee_hash = $(NULL)
 libgee_recipe = meson
@@ -431,7 +434,7 @@ libgee_deps = \
 libgee_deps_for_build = \
 	$(NULL)
 
-json_glib_version = 7a147f05da8c55dfd0845a8b4c998f88d5214746
+json_glib_version = a9b00c0c23709fa11df1ac60c1c7b5eb4596a600
 json_glib_url = $(frida_base_url)/json-glib.git
 json_glib_hash = $(NULL)
 json_glib_recipe = meson
@@ -479,7 +482,7 @@ libxml2_deps = \
 libxml2_deps_for_build = \
 	$(NULL)
 
-libsoup_version = fecd985fa710fa494f62b7bfc9d0728185db2798
+libsoup_version = 3a8e1eedd1863512199362d205af01ca59935744
 libsoup_url = $(frida_base_url)/libsoup.git
 libsoup_hash = $(NULL)
 libsoup_recipe = meson
@@ -567,6 +570,7 @@ openssl_recipe = custom
 openssl_patches = \
 	openssl-android.patch \
 	openssl-armcap.patch \
+	openssl-windows.patch \
 	$(NULL)
 openssl_options = \
 	--openssldir=/etc/ssl \
@@ -585,7 +589,7 @@ openssl_deps = \
 openssl_deps_for_build = \
 	$(NULL)
 
-v8_version = 35fc430315daa11147829be927663ff049f0b149
+v8_version = a19cd1873febc322a6783b548c9ceda1559fd140
 v8_url = $(frida_base_url)/v8.git
 v8_hash = $(NULL)
 v8_recipe = custom

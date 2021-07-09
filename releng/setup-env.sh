@@ -110,7 +110,7 @@ case $FRIDA_ASAN in
 esac
 
 if which curl &>/dev/null; then
-  download_command="curl -sS"
+  download_command="curl --progress-bar"
 elif which wget &>/dev/null; then
   download_command="wget -O - -q"
 else
@@ -229,7 +229,7 @@ if ! grep -Eq "^$toolchain_version\$" "$FRIDA_TOOLROOT/VERSION.txt" 2>/dev/null;
   mv "$vala_wrapper" "$vala_impl"
   (
     echo "#!/bin/sh"
-    echo "exec \"$vala_impl\" --target-glib=2.68 \"\$@\" --vapidir=\"$FRIDA_TOOLROOT/share/vala-$vala_api_version/vapi\""
+    echo "exec \"$vala_impl\" --target-glib=2.56 \"\$@\" --vapidir=\"$FRIDA_TOOLROOT/share/vala-$vala_api_version/vapi\""
   ) > "$vala_wrapper"
   chmod 755 "$vala_wrapper"
 
