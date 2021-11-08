@@ -1,5 +1,5 @@
-frida_deps_version = 20210708
-frida_bootstrap_version = 20210607
+frida_deps_version = 20211107
+frida_bootstrap_version = 20210708
 
 
 frida_base_url = https://github.com/frida
@@ -31,13 +31,12 @@ libiconv_deps = \
 libiconv_deps_for_build = \
 	$(NULL)
 
-m4_version = 1.4.18
+m4_version = 1.4.19
 m4_url = https://$(gnu_mirror)/m4/m4-$(m4_version).tar.gz
-m4_hash = ab2633921a5cd38e48797bf5521ad259bdc4b979078034a3b790d7fec5493fab
+m4_hash = 3be4a26d825ffdfda52a56fc43246456989a3630093cced3fbddf4771ee58a70
 m4_recipe = autotools
 m4_patches = \
-	m4-vasnprintf-apple-fix.patch \
-	m4-ftbfs-fix.patch \
+	m4-macos-arm64e.patch \
 	$(NULL)
 m4_options = \
 	$(NULL)
@@ -46,13 +45,11 @@ m4_deps = \
 m4_deps_for_build = \
 	$(NULL)
 
-autoconf_version = 2.69
+autoconf_version = 2.71
 autoconf_url = https://$(gnu_mirror)/autoconf/autoconf-$(autoconf_version).tar.gz
-autoconf_hash = 954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd4c2969
+autoconf_hash = 431075ad0bf529ef13cb41e9042c542381103e80015686222b8a9d4abef42a1c
 autoconf_recipe = autotools
 autoconf_patches = \
-	autoconf-uclibc.patch \
-	autoconf-doc-fix-texinfo-macro-usage.patch \
 	$(NULL)
 autoconf_options = \
 	$(NULL)
@@ -62,9 +59,9 @@ autoconf_deps = \
 autoconf_deps_for_build = \
 	$(NULL)
 
-automake_version = 1.16.2
+automake_version = 1.16.5
 automake_url = https://$(gnu_mirror)/automake/automake-$(automake_version).tar.gz
-automake_hash = b2f361094b410b4acbf4efba7337bdb786335ca09eb2518635a09fb7319ca5c1
+automake_hash = 07bd24ad08a64bc17250ce09ec56e921d6343903943e99ccf63bbf0705e34605
 automake_recipe = autotools
 automake_patches = \
 	$(NULL)
@@ -149,7 +146,7 @@ selinux_deps = \
 selinux_deps_for_build = \
 	$(NULL)
 
-glib_version = 6d3a90e5c670b4fb37633c0ac8c285c259615b3e
+glib_version = e696b4b529f9528740dd9a8d9f22d5e8c3293fd6
 glib_url = $(frida_base_url)/glib.git
 glib_hash = $(NULL)
 glib_recipe = meson
@@ -165,11 +162,11 @@ glib_options = \
 	-Dselinux=disabled \
 	-Dxattr=false \
 	-Dlibmount=disabled \
-	-Dinternal_pcre=true \
 	-Dtests=false \
 	-Dglib_debug=disabled \
 	-Dglib_assert=false \
 	-Dglib_checks=false \
+	--force-fallback-for=pcre \
 	$(NULL)
 ifeq ($(host_os), $(filter $(host_os),macos ios))
 # Use Apple's iconv by default to make our toolchain smaller.
@@ -185,7 +182,7 @@ glib_options += -Diconv=external
 glib_deps += libiconv
 endif
 
-pkg_config_version = b7fb5edc1f1a4fb17cd5cb94f4cf21912184da43
+pkg_config_version = 4696795673d1d3dec46b663df48f8cbf66461d14
 pkg_config_url = $(frida_base_url)/pkg-config.git
 pkg_config_hash = $(NULL)
 pkg_config_recipe = meson
@@ -214,9 +211,9 @@ flex_deps = \
 flex_deps_for_build = \
 	$(NULL)
 
-bison_version = 3.7.3
+bison_version = 3.8.2
 bison_url = https://$(gnu_mirror)/bison/bison-$(bison_version).tar.gz
-bison_hash = 104fe912f2212ab4e4a59df888a93b719a046ffc38d178e943f6c54b1f27b3c7
+bison_hash = 06c9e13bdf7eb24d4ceb6b59205a4f67c2c7e7213119644430fe82fbd14a0abb
 bison_recipe = autotools
 bison_patches = \
 	$(NULL)
@@ -228,7 +225,7 @@ bison_deps = \
 bison_deps_for_build = \
 	$(NULL)
 
-vala_version = e4b85234cecf627336d6dfaab47a6ea8fb5dc025
+vala_version = 86e8471bfdde7e4b55aba0474517a4f12e3c1b1b
 vala_url = $(frida_base_url)/vala.git
 vala_hash = $(NULL)
 vala_recipe = meson
@@ -293,7 +290,7 @@ xz_deps = \
 xz_deps_for_build = \
 	$(NULL)
 
-brotli_version = 753ac0f5855bcf8f980bd7c787ac56030b42db84
+brotli_version = 8abf3188d1ef4bb8a633f894fec731bdd510ee49
 brotli_url = $(frida_base_url)/brotli.git
 brotli_hash = $(NULL)
 brotli_recipe = meson
@@ -306,7 +303,7 @@ brotli_deps = \
 brotli_deps_for_build = \
 	$(NULL)
 
-minizip_version = 4501ae619720d6769302eb792ae9389d878201f8
+minizip_version = 5f0e6cefd1cd5d7e3d5ec7a0fd34b74382275a52
 minizip_url = $(frida_base_url)/minizip.git
 minizip_hash = $(NULL)
 minizip_recipe = meson
@@ -328,7 +325,7 @@ ifeq ($(FRIDA_LIBC), uclibc)
 minizip_deps += libiconv
 endif
 
-sqlite_version = b67ff8d8344c355ec322e1a838dd204416483be2
+sqlite_version = 85d71437565bc68959fcf2225cfd5f94b0c8451f
 sqlite_url = $(frida_base_url)/sqlite.git
 sqlite_hash = $(NULL)
 sqlite_recipe = meson
@@ -363,7 +360,7 @@ libunwind_deps = \
 libunwind_deps_for_build = \
 	$(NULL)
 
-glib_networking_version = 0ef1a69313d0143bb903c4de9f175f560123b93c
+glib_networking_version = d30156d5429410330bf3a574db5551cacb7e6acd
 glib_networking_url = $(frida_base_url)/glib-networking.git
 glib_networking_hash = $(NULL)
 glib_networking_recipe = meson
@@ -383,7 +380,7 @@ glib_networking_deps = \
 glib_networking_deps_for_build = \
 	$(NULL)
 
-libnice_version = a79e99251cd44cd1c8296422bf7c8314ae1ceb75
+libnice_version = f9bf93471ab128821ceebf6bf3e4aa3e941af4b0
 libnice_url = $(frida_base_url)/libnice.git
 libnice_hash = $(NULL)
 libnice_recipe = meson
@@ -404,7 +401,7 @@ libnice_deps = \
 libnice_deps_for_build = \
 	$(NULL)
 
-usrsctp_version = 2020cb9c6cc1c26a848cd352d46ea36b11cacbe0
+usrsctp_version = 16dab49d6f589fe1cbaa1031e88868e8a462a82e
 usrsctp_url = $(frida_base_url)/usrsctp.git
 usrsctp_hash = $(NULL)
 usrsctp_recipe = meson
@@ -420,7 +417,7 @@ usrsctp_deps = \
 usrsctp_deps_for_build = \
 	$(NULL)
 
-libgee_version = efe80dbdc63fb5aeb4d0f6999fa19621efb1865c
+libgee_version = dfc445712c2e597f0e58b58c055ad99d3a86c2a5
 libgee_url = $(frida_base_url)/libgee.git
 libgee_hash = $(NULL)
 libgee_recipe = meson
@@ -434,7 +431,7 @@ libgee_deps = \
 libgee_deps_for_build = \
 	$(NULL)
 
-json_glib_version = a9b00c0c23709fa11df1ac60c1c7b5eb4596a600
+json_glib_version = 15b24d3775cbfb2cc66e01e1b75ba7fc72bc6571
 json_glib_url = $(frida_base_url)/json-glib.git
 json_glib_hash = $(NULL)
 json_glib_recipe = meson
@@ -451,7 +448,7 @@ json_glib_deps = \
 json_glib_deps_for_build = \
 	$(NULL)
 
-libpsl_version = 3caf6c33029b6c43fc31ce172badf976f6c37bc4
+libpsl_version = a8abcd05a55f0bbf078f8cd20c81e7b0d4aebd66
 libpsl_url = $(frida_base_url)/libpsl.git
 libpsl_hash = $(NULL)
 libpsl_recipe = meson
@@ -467,7 +464,7 @@ libpsl_deps = \
 libpsl_deps_for_build = \
 	$(NULL)
 
-libxml2_version = f1845f6fd1c0b6aac0f573c77a8250f8d4eb31fd
+libxml2_version = 238e22ed39fe103fbf685d8d969ddb81f6a95aa6
 libxml2_url = $(frida_base_url)/libxml2.git
 libxml2_hash = $(NULL)
 libxml2_recipe = meson
@@ -482,7 +479,7 @@ libxml2_deps = \
 libxml2_deps_for_build = \
 	$(NULL)
 
-libsoup_version = 3a8e1eedd1863512199362d205af01ca59935744
+libsoup_version = 78e0f114f634dcadf15d25bf296d72f0281b1f9d
 libsoup_url = $(frida_base_url)/libsoup.git
 libsoup_hash = $(NULL)
 libsoup_recipe = meson
@@ -509,7 +506,7 @@ libsoup_deps = \
 libsoup_deps_for_build = \
 	$(NULL)
 
-capstone_version = 5002dd1384ff716628ddc1a8914dd196c171109c
+capstone_version = 7868d887729a8ef89803ca90c3c56edb51b27a24
 capstone_url = $(frida_base_url)/capstone.git
 capstone_hash = $(NULL)
 capstone_recipe = meson
@@ -563,14 +560,15 @@ tinycc_deps = \
 tinycc_deps_for_build = \
 	$(NULL)
 
-openssl_version = 1.1.1k
+openssl_version = 1.1.1l
 openssl_url = https://www.openssl.org/source/openssl-$(openssl_version).tar.gz
-openssl_hash = 892a0875b9872acd04a9fde79b1f943075d5ea162415de3047c327df33fbaee5
+openssl_hash = 0b7a3e5e59c34827fe0c3a74b7ec8baef302b98fa80088d7f9153aa16fa76bd1
 openssl_recipe = custom
 openssl_patches = \
-	openssl-android.patch \
 	openssl-armcap.patch \
 	openssl-windows.patch \
+	openssl-macos-sdk-compatibility.patch \
+	openssl-android.patch \
 	$(NULL)
 openssl_options = \
 	--openssldir=/etc/ssl \
