@@ -1,5 +1,5 @@
-frida_deps_version = 20211107
-frida_bootstrap_version = 20210708
+frida_deps_version = 20211120
+frida_bootstrap_version = 20211107
 
 
 frida_base_url = https://github.com/frida
@@ -587,7 +587,7 @@ openssl_deps = \
 openssl_deps_for_build = \
 	$(NULL)
 
-v8_version = a19cd1873febc322a6783b548c9ceda1559fd140
+v8_version = fc2a4bce7ecc6d9de0b906e7a02c66ce8661c2ae
 v8_url = $(frida_base_url)/v8.git
 v8_hash = $(NULL)
 v8_recipe = custom
