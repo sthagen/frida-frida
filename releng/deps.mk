@@ -1,5 +1,5 @@
-frida_deps_version = 20211120
-frida_bootstrap_version = 20211107
+frida_deps_version = 20220130
+frida_bootstrap_version = 20220127
 
 
 frida_base_url = https://github.com/frida
@@ -18,10 +18,39 @@ endif
 host_os_arch := $(host_os)-$(host_arch)
 
 
-libiconv_version = 1.16
-libiconv_url = https://$(gnu_mirror)/libiconv/libiconv-$(libiconv_version).tar.gz
-libiconv_hash = e6a1b1b589654277ee790cce3734f07876ac4ccfaecbee8afa0b649cf529cc04
-libiconv_recipe = autotools
+ninja_name = Ninja
+ninja_version = v1.10.2
+ninja_url = https://github.com/ninja-build/ninja.git
+ninja_hash = $(NULL)
+ninja_recipe = custom
+ninja_patches = \
+	$(NULL)
+ninja_options = \
+	$(NULL)
+ninja_deps = \
+	$(NULL)
+ninja_deps_for_build = \
+	$(NULL)
+
+frida_elf_cleaner_name = frida-elf-cleaner
+frida_elf_cleaner_version = 821c6319f5545f092d815233df73fc253ca4c603
+frida_elf_cleaner_url = $(frida_base_url)/frida-elf-cleaner.git
+frida_elf_cleaner_hash = $(NULL)
+frida_elf_cleaner_recipe = meson
+frida_elf_cleaner_patches = \
+	$(NULL)
+frida_elf_cleaner_options = \
+	$(NULL)
+frida_elf_cleaner_deps = \
+	$(NULL)
+frida_elf_cleaner_deps_for_build = \
+	$(NULL)
+
+libiconv_name = libiconv
+libiconv_version = 78d655ecc65b773b8e6642ea4be89e6f51d2c518
+libiconv_url = $(frida_base_url)/libiconv.git
+libiconv_hash = $(NULL)
+libiconv_recipe = meson
 libiconv_patches = \
 	$(NULL)
 libiconv_options = \
@@ -31,82 +60,8 @@ libiconv_deps = \
 libiconv_deps_for_build = \
 	$(NULL)
 
-m4_version = 1.4.19
-m4_url = https://$(gnu_mirror)/m4/m4-$(m4_version).tar.gz
-m4_hash = 3be4a26d825ffdfda52a56fc43246456989a3630093cced3fbddf4771ee58a70
-m4_recipe = autotools
-m4_patches = \
-	m4-macos-arm64e.patch \
-	$(NULL)
-m4_options = \
-	$(NULL)
-m4_deps = \
-	$(NULL)
-m4_deps_for_build = \
-	$(NULL)
-
-autoconf_version = 2.71
-autoconf_url = https://$(gnu_mirror)/autoconf/autoconf-$(autoconf_version).tar.gz
-autoconf_hash = 431075ad0bf529ef13cb41e9042c542381103e80015686222b8a9d4abef42a1c
-autoconf_recipe = autotools
-autoconf_patches = \
-	$(NULL)
-autoconf_options = \
-	$(NULL)
-autoconf_deps = \
-	m4 \
-	$(NULL)
-autoconf_deps_for_build = \
-	$(NULL)
-
-automake_version = 1.16.5
-automake_url = https://$(gnu_mirror)/automake/automake-$(automake_version).tar.gz
-automake_hash = 07bd24ad08a64bc17250ce09ec56e921d6343903943e99ccf63bbf0705e34605
-automake_recipe = autotools
-automake_patches = \
-	$(NULL)
-automake_options = \
-	$(NULL)
-automake_deps = \
-	autoconf \
-	$(NULL)
-automake_deps_for_build = \
-	$(NULL)
-automake_api_version = 1.16
-
-libtool_version = 2.4.6
-libtool_url = https://$(gnu_mirror)/libtool/libtool-$(libtool_version).tar.gz
-libtool_hash = e3bd4d5d3d025a36c21dd6af7ea818a2afcd4dfc1ea5a17b39d7854bcd0c06e3
-libtool_recipe = custom
-libtool_patches = \
-	libtool-fixes.patch \
-	$(NULL)
-libtool_options = \
-	$(NULL)
-libtool_deps = \
-	automake \
-	$(NULL)
-libtool_deps_for_build = \
-	$(NULL)
-
-gettext_version = 0.21
-gettext_url = https://$(gnu_mirror)/gettext/gettext-$(gettext_version).tar.gz
-gettext_hash = c77d0da3102aec9c07f43671e60611ebff89a996ef159497ce8e59d075786b12
-gettext_recipe = autotools
-gettext_patches = \
-	gettext-static-only.patch \
-	gettext-gnulib-glibc.patch \
-	$(NULL)
-gettext_options = \
-	--disable-curses \
-	$(NULL)
-gettext_deps = \
-	libtool \
-	$(NULL)
-gettext_deps_for_build = \
-	$(NULL)
-
-zlib_version = 91920caec2160ffd919fd48dc4e7a0f6c3fb36d2
+zlib_name = zlib
+zlib_version = 64dd495da9b75ad61400a8de5b2a1bbb9fbbffbb
 zlib_url = $(frida_base_url)/zlib.git
 zlib_hash = $(NULL)
 zlib_recipe = meson
@@ -119,7 +74,8 @@ zlib_deps = \
 zlib_deps_for_build = \
 	$(NULL)
 
-libffi_version = b2ec2430601562a33e75470a3db044d4279b7955
+libffi_name = libffi
+libffi_version = 3015491cc15aa2cff8cde4a6176bfdc24452ec0b
 libffi_url = $(frida_base_url)/libffi.git
 libffi_hash = $(NULL)
 libffi_recipe = meson
@@ -132,6 +88,7 @@ libffi_deps = \
 libffi_deps_for_build = \
 	$(NULL)
 
+selinux_name = SELinux Userspace
 selinux_version = 9c7ba053bb075cace088d268fda400f6bc4ab14c
 selinux_url = $(frida_base_url)/selinux.git
 selinux_hash = $(NULL)
@@ -146,7 +103,8 @@ selinux_deps = \
 selinux_deps_for_build = \
 	$(NULL)
 
-glib_version = e696b4b529f9528740dd9a8d9f22d5e8c3293fd6
+glib_name = GLib
+glib_version = 1e33e9324218fd9ac2a286310ffc76dad83f70a1
 glib_url = $(frida_base_url)/glib.git
 glib_hash = $(NULL)
 glib_recipe = meson
@@ -182,6 +140,7 @@ glib_options += -Diconv=external
 glib_deps += libiconv
 endif
 
+pkg_config_name = pkg-config
 pkg_config_version = 4696795673d1d3dec46b663df48f8cbf66461d14
 pkg_config_url = $(frida_base_url)/pkg-config.git
 pkg_config_hash = $(NULL)
@@ -196,6 +155,7 @@ pkg_config_deps = \
 pkg_config_deps_for_build = \
 	$(NULL)
 
+flex_name = Flex
 flex_version = 2.6.4
 flex_url = https://github.com/westes/flex/releases/download/v$(flex_version)/flex-$(flex_version).tar.gz
 flex_hash = e87aae032bf07c26f85ac0ed3250998c37621d95f8bd748b31f15b33c45ee995
@@ -206,11 +166,11 @@ flex_patches = \
 flex_options = \
 	$(NULL)
 flex_deps = \
-	m4 \
 	$(NULL)
 flex_deps_for_build = \
 	$(NULL)
 
+bison_name = Bison
 bison_version = 3.8.2
 bison_url = https://$(gnu_mirror)/bison/bison-$(bison_version).tar.gz
 bison_hash = 06c9e13bdf7eb24d4ceb6b59205a4f67c2c7e7213119644430fe82fbd14a0abb
@@ -220,12 +180,12 @@ bison_patches = \
 bison_options = \
 	$(NULL)
 bison_deps = \
-	m4 \
 	$(NULL)
 bison_deps_for_build = \
 	$(NULL)
 
-vala_version = 86e8471bfdde7e4b55aba0474517a4f12e3c1b1b
+vala_name = Vala
+vala_version = e29e312e8529e59f2967b86b9bbb8584dcde7c30
 vala_url = $(frida_base_url)/vala.git
 vala_hash = $(NULL)
 vala_recipe = meson
@@ -241,55 +201,54 @@ vala_deps_for_build = \
 	bison \
 	$(NULL)
 
-elfutils_version = b503c358dde835d8a1ae3ebd4968755ff396f814
-elfutils_url = git://sourceware.org/git/elfutils.git
+elfutils_name = elfutils
+elfutils_version = ea3ec44e6ee32533a04fb861ff938d8f0ab9d37f
+elfutils_url = $(frida_base_url)/elfutils.git
 elfutils_hash = $(NULL)
-elfutils_recipe = custom
+elfutils_recipe = meson
 elfutils_patches = \
-	elfutils-clang.patch \
-	elfutils-android.patch \
-	elfutils-glibc-compatibility.patch \
-	elfutils-musl.patch \
 	$(NULL)
 elfutils_options = \
-	--enable-maintainer-mode \
-	--disable-libdebuginfod \
-	--disable-debuginfod \
 	$(NULL)
 elfutils_deps = \
-	xz \
 	zlib \
 	$(NULL)
 elfutils_deps_for_build = \
 	$(NULL)
 
-libdwarf_version = 20201201
-libdwarf_url = https://www.prevanders.net/libdwarf-$(libdwarf_version).tar.gz
-libdwarf_hash = 62db1028dfd8fd877d01ae75873ac1fe311437012ef48a0ac4157189e1e9b2c9
-libdwarf_recipe = custom
+libdwarf_name = libdwarf
+libdwarf_version = e7013e4df7cfeaf331da196aaa2735fd2c90560d
+libdwarf_url = $(frida_base_url)/libdwarf.git
+libdwarf_hash = $(NULL)
+libdwarf_recipe = meson
 libdwarf_patches = \
 	$(NULL)
 libdwarf_options = \
 	$(NULL)
 libdwarf_deps = \
-	elfutils \
 	$(NULL)
+ifneq ($(host_os), freebsd)
+libdwarf_deps += elfutils
+endif
 libdwarf_deps_for_build = \
 	$(NULL)
 
-xz_version = 6c84113065f603803683d30342207c73465bbc12
+xz_name = XZ Utils
+xz_version = deb5bb8cdb5d35bd4cbdfc69d4d7f497d1e6fb01
 xz_url = $(frida_base_url)/xz.git
 xz_hash = $(NULL)
-xz_recipe = autotools
+xz_recipe = meson
 xz_patches = \
 	$(NULL)
 xz_options = \
+	-Dcli=disabled \
 	$(NULL)
 xz_deps = \
 	$(NULL)
 xz_deps_for_build = \
 	$(NULL)
 
+brotli_name = Brotli
 brotli_version = 8abf3188d1ef4bb8a633f894fec731bdd510ee49
 brotli_url = $(frida_base_url)/brotli.git
 brotli_hash = $(NULL)
@@ -303,8 +262,9 @@ brotli_deps = \
 brotli_deps_for_build = \
 	$(NULL)
 
-minizip_version = 5f0e6cefd1cd5d7e3d5ec7a0fd34b74382275a52
-minizip_url = $(frida_base_url)/minizip.git
+minizip_name = minizip-ng
+minizip_version = 535c1b9150e5e47b9a533b6f16787042da92ac63
+minizip_url = $(frida_base_url)/minizip-ng.git
 minizip_hash = $(NULL)
 minizip_recipe = meson
 minizip_patches = \
@@ -325,6 +285,7 @@ ifeq ($(FRIDA_LIBC), uclibc)
 minizip_deps += libiconv
 endif
 
+sqlite_name = SQLite
 sqlite_version = 85d71437565bc68959fcf2225cfd5f94b0c8451f
 sqlite_url = $(frida_base_url)/sqlite.git
 sqlite_hash = $(NULL)
@@ -338,20 +299,21 @@ sqlite_deps = \
 sqlite_deps_for_build = \
 	$(NULL)
 
-libunwind_version = 6548fb3ba612847b967f682ea75f5dde2ec3f331
+libunwind_name = libunwind
+libunwind_version = 7ce337e50dd6dd8b0cd8eb711100b48d8769c2d4
 libunwind_url = $(frida_base_url)/libunwind.git
 libunwind_hash = $(NULL)
-libunwind_recipe = autotools
+libunwind_recipe = meson
 libunwind_patches = \
 	$(NULL)
 libunwind_options = \
-	--disable-coredump \
-	--disable-ptrace \
-	--disable-setjmp \
-	--disable-debug \
-	--disable-msabi-support \
-	--enable-minidebuginfo \
-	--enable-zlibdebuginfo \
+	-Dgeneric_library=disabled \
+	-Dcoredump_library=disabled \
+	-Dptrace_library=disabled \
+	-Dsetjmp_library=disabled \
+	-Dmsabi_support=false \
+	-Dminidebuginfo=enabled \
+	-Dzlibdebuginfo=enabled \
 	$(NULL)
 libunwind_deps = \
 	zlib \
@@ -360,6 +322,7 @@ libunwind_deps = \
 libunwind_deps_for_build = \
 	$(NULL)
 
+glib_networking_name = glib-networking
 glib_networking_version = d30156d5429410330bf3a574db5551cacb7e6acd
 glib_networking_url = $(frida_base_url)/glib-networking.git
 glib_networking_hash = $(NULL)
@@ -380,6 +343,7 @@ glib_networking_deps = \
 glib_networking_deps_for_build = \
 	$(NULL)
 
+libnice_name = libnice
 libnice_version = f9bf93471ab128821ceebf6bf3e4aa3e941af4b0
 libnice_url = $(frida_base_url)/libnice.git
 libnice_hash = $(NULL)
@@ -401,6 +365,7 @@ libnice_deps = \
 libnice_deps_for_build = \
 	$(NULL)
 
+usrsctp_name = usrsctp
 usrsctp_version = 16dab49d6f589fe1cbaa1031e88868e8a462a82e
 usrsctp_url = $(frida_base_url)/usrsctp.git
 usrsctp_hash = $(NULL)
@@ -417,7 +382,8 @@ usrsctp_deps = \
 usrsctp_deps_for_build = \
 	$(NULL)
 
-libgee_version = dfc445712c2e597f0e58b58c055ad99d3a86c2a5
+libgee_name = libgee
+libgee_version = 5b00fd64096b369a04fe04a7246e1927c3fedbd7
 libgee_url = $(frida_base_url)/libgee.git
 libgee_hash = $(NULL)
 libgee_recipe = meson
@@ -431,7 +397,8 @@ libgee_deps = \
 libgee_deps_for_build = \
 	$(NULL)
 
-json_glib_version = 15b24d3775cbfb2cc66e01e1b75ba7fc72bc6571
+json_glib_name = JSON-GLib
+json_glib_version = a8d3ac569bfaf509e2a20b55ee4fd6b89851b8b1
 json_glib_url = $(frida_base_url)/json-glib.git
 json_glib_hash = $(NULL)
 json_glib_recipe = meson
@@ -448,7 +415,8 @@ json_glib_deps = \
 json_glib_deps_for_build = \
 	$(NULL)
 
-libpsl_version = a8abcd05a55f0bbf078f8cd20c81e7b0d4aebd66
+libpsl_name = libpsl
+libpsl_version = dc7fce073dfb66f055ce91ebeff41f60b9db2ce4
 libpsl_url = $(frida_base_url)/libpsl.git
 libpsl_hash = $(NULL)
 libpsl_recipe = meson
@@ -464,7 +432,8 @@ libpsl_deps = \
 libpsl_deps_for_build = \
 	$(NULL)
 
-libxml2_version = 238e22ed39fe103fbf685d8d969ddb81f6a95aa6
+libxml2_name = libxml2
+libxml2_version = 10935fd8fd510307aa44b0b5ebee1f3f27299a29
 libxml2_url = $(frida_base_url)/libxml2.git
 libxml2_hash = $(NULL)
 libxml2_recipe = meson
@@ -479,7 +448,8 @@ libxml2_deps = \
 libxml2_deps_for_build = \
 	$(NULL)
 
-libsoup_version = 78e0f114f634dcadf15d25bf296d72f0281b1f9d
+libsoup_name = libsoup
+libsoup_version = 4c87b93edb3a4d811e55777025a48af4d03c538b
 libsoup_url = $(frida_base_url)/libsoup.git
 libsoup_hash = $(NULL)
 libsoup_recipe = meson
@@ -506,7 +476,8 @@ libsoup_deps = \
 libsoup_deps_for_build = \
 	$(NULL)
 
-capstone_version = 7868d887729a8ef89803ca90c3c56edb51b27a24
+capstone_name = Capstone
+capstone_version = 6182ac33e0e5876bdf39f7e60416ce9fd73ce61a
 capstone_url = $(frida_base_url)/capstone.git
 capstone_hash = $(NULL)
 capstone_recipe = meson
@@ -530,7 +501,8 @@ capstone_archs := $(shell echo $(host_arch) | sed $(sed_regex_option) \
 		-e 's,^s390x$$,sysz,' \
 	)
 
-quickjs_version = 923440e698c33753f8b054e33624680203d268e5
+quickjs_name = QuickJS
+quickjs_version = 5d4e8de886d1f699ff62559fc44562a56f50027e
 quickjs_url = $(frida_base_url)/quickjs.git
 quickjs_hash = $(NULL)
 quickjs_recipe = meson
@@ -547,7 +519,8 @@ quickjs_deps = \
 quickjs_deps_for_build = \
 	$(NULL)
 
-tinycc_version = 71c2e2c3d5009bf4ec0c242715250fdc772d49d1
+tinycc_name = TinyCC
+tinycc_version = 4a87cff80321274ecb3fdbd54afc2cf0a4fca006
 tinycc_url = $(frida_base_url)/tinycc.git
 tinycc_hash = $(NULL)
 tinycc_recipe = meson
@@ -560,34 +533,22 @@ tinycc_deps = \
 tinycc_deps_for_build = \
 	$(NULL)
 
-openssl_version = 1.1.1l
-openssl_url = https://www.openssl.org/source/openssl-$(openssl_version).tar.gz
-openssl_hash = 0b7a3e5e59c34827fe0c3a74b7ec8baef302b98fa80088d7f9153aa16fa76bd1
-openssl_recipe = custom
+openssl_name = OpenSSL
+openssl_version = 3d2ab7e65cc426d2336eb25dd739dcb635d4862c
+openssl_url = $(frida_base_url)/openssl.git
+openssl_hash = $(NULL)
+openssl_recipe = meson
 openssl_patches = \
-	openssl-armcap.patch \
-	openssl-windows.patch \
-	openssl-macos-sdk-compatibility.patch \
-	openssl-android.patch \
 	$(NULL)
 openssl_options = \
-	--openssldir=/etc/ssl \
-	no-dso \
-	no-engine \
-	no-tests \
-	no-comp \
-	no-ssl3 \
-	no-zlib \
-	no-async \
-	no-shared \
-	enable-cms \
 	$(NULL)
 openssl_deps = \
 	$(NULL)
 openssl_deps_for_build = \
 	$(NULL)
 
-v8_version = fc2a4bce7ecc6d9de0b906e7a02c66ce8661c2ae
+v8_name = V8
+v8_version = c2f50af5b45285e978d711f4750c64767b190040
 v8_url = $(frida_base_url)/v8.git
 v8_hash = $(NULL)
 v8_recipe = custom
@@ -615,7 +576,8 @@ v8_deps_for_build = \
 	$(NULL)
 v8_api_version = 8.0
 
-gn_version = 75194c124f158d7fabdc94048f1a3f850a5f0701
+gn_name = GN
+gn_version = dd3501bfb77bafc41e7493c92e2684fa9709770b
 gn_url = $(frida_base_url)/gn.git
 gn_hash = $(NULL)
 gn_recipe = custom
@@ -628,11 +590,13 @@ gn_deps = \
 gn_deps_for_build = \
 	$(NULL)
 
-depot_tools_version = b674f8a27725216bd2201652636649d83064ca4a
+depot_tools_name = depot_tools
+depot_tools_version = cb340f5b7bbdcaba0fad346b08db91538619a531
 depot_tools_url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
 depot_tools_hash = $(NULL)
 depot_tools_recipe = custom
 depot_tools_patches = \
+	depot_tools-os-support.patch \
 	$(NULL)
 depot_tools_options = \
 	$(NULL)
@@ -669,24 +633,27 @@ build/$2-%/manifest/$1.pkg: build/$2-env-%.rc deps/.$1-stamp \
 		$(foreach dep, $($(subst -,_,$1)_deps_for_build), build/$2-$(build_os_arch)/manifest/$(dep).pkg) \
 		releng/meson/meson.py
 	@$(call print-status,$1,Building)
-	@prefix=$$(abspath build/$2-$$*); \
+	@prefix=$$(shell pwd)/build/$2-$$*; \
 	builddir=build/$2-tmp-$$*/$1; \
 	$(RM) -r $$$$builddir; \
 	mkdir -p $$$$builddir; \
 	(set -x \
-		&& . build/$2-meson-env-$$*.rc \
-		&& export PATH="$$(abspath build/$2-$(build_os_arch))/bin:$$$$PATH" \
+		&& . build/$2-env-$$*.rc \
+		&& export PATH="$$(shell pwd)/build/$2-$(build_os_arch)/bin:$$$$PATH" \
 		&& $(call print-status,$1,Configuring) \
-		&& $(MESON) \
-			--cross-file build/$2-$$*.txt \
+		&& meson_args="--native-file build/$2-$(build_os_arch).txt" \
+		&& if [ $$* != $(build_os_arch) ]; then \
+			meson_args="$$$$meson_args --cross-file build/$2-$$*.txt"; \
+		fi \
+		&& $(MESON) setup $$$$meson_args \
 			--prefix "$$$$prefix" \
 			--libdir "$$$$prefix/lib" \
 			--default-library static \
-			$$(FRIDA_MESONFLAGS_BOTTLE) \
+			$$(FRIDA_FLAGS_BOTTLE) \
 			$$($$(subst -,_,$1)_options) \
 			$$$$builddir \
 			deps/$1 \
-		&& $(NINJA) -C $$$$builddir install \
+		&& $(MESON) install -C $$$$builddir \
 	) >$$$$builddir/build.log 2>&1 \
 	&& $(call print-status,$1,Generating manifest) \
 	&& (set -x \
@@ -695,7 +662,7 @@ build/$2-%/manifest/$1.pkg: build/$2-env-%.rc deps/.$1-stamp \
 		&& $(MESON) introspect --installed --indent \
 			| grep ": " \
 			| cut -f4 -d'"' \
-			| cut -c$$(strip $$(shell echo $$(abspath build/$2-$$*)x | wc -c))- \
+			| cut -c$$(strip $$(shell echo $$(shell pwd)/build/$2-$$*x | wc -c))- \
 			| sort \
 			> "$$$$prefix/manifest/$1.pkg" \
 	) >>$$$$builddir/build.log 2>&1 || (echo "failed - see $$$$builddir/build.log for more information"; exit 1) \
@@ -720,31 +687,14 @@ deps/.$1-stamp:
 	$$(call grab-and-prepare,$1)
 	@touch $$@
 
-$(call make-autotools-autoreconf-rule,$1,$2)
-
 $(call make-autotools-configure-rule,$1,$2)
-
-endef
-
-
-define make-autotools-autoreconf-rule
-
-deps/$1/configure: build/$2-env-$(build_os_arch).rc deps/.$1-stamp
-	@. $$< \
-		&& cd $$(@D) \
-		&& if [ ! -f configure ] || [ -f ../.$1-reconf-needed ]; then \
-			$(call print-status,$1,Generating build system); \
-			autoreconf -if &>/dev/null || exit 1; \
-			rm -f ../.$1-reconf-needed; \
-		fi
-	@touch $$@
 
 endef
 
 
 define make-autotools-configure-rule
 
-build/$2-tmp-%/$1/Makefile: build/$2-env-%.rc deps/$1/configure deps/.$1-stamp \
+build/$2-tmp-%/$1/Makefile: build/$2-env-%.rc deps/.$1-stamp \
 		$(foreach dep, $($(subst -,_,$1)_deps), build/$2-%/manifest/$(dep).pkg) \
 		$(foreach dep, $($(subst -,_,$1)_deps_for_build), build/$2-$(build_os_arch)/manifest/$(dep).pkg)
 	@$(call print-status,$1,Configuring)
@@ -752,9 +702,11 @@ build/$2-tmp-%/$1/Makefile: build/$2-env-%.rc deps/$1/configure deps/.$1-stamp \
 	@mkdir -p $$(@D)
 	@(set -x \
 		&& . $$< \
-		&& export PATH="$$(abspath build/$2-$(build_os_arch))/bin:$$$$PATH" \
+		&& export PATH="$$(shell pwd)/build/$2-$(build_os_arch)/bin:$$$$PATH" \
 		&& cd $$(@D) \
-		&& ../../../deps/$1/configure $$($$(subst -,_,$1)_options) \
+		&& ../../../deps/$1/configure \
+			--prefix=$$(shell pwd)/build/$2-$$* \
+			$$($$(subst -,_,$1)_options) \
 	) >$$(@D)/build.log 2>&1 || (echo "failed - see $$(@D)/build.log for more information"; exit 1)
 
 endef
@@ -767,7 +719,7 @@ build/$2-%/manifest/$1.pkg: build/$2-env-%.rc build/$2-tmp-%/$1/Makefile
 	@builddir=build/$2-tmp-$$*/$1; \
 	(set -x \
 		&& . $$< \
-		&& export PATH="$$(abspath build/$2-$(build_os_arch))/bin:$$$$PATH" \
+		&& export PATH="$$(shell pwd)/build/$2-$(build_os_arch)/bin:$$$$PATH" \
 		&& cd "$$$$builddir" \
 		&& $(MAKE) $(MAKE_J) \
 		&& $(MAKE) $(MAKE_J) install \
@@ -782,15 +734,15 @@ endef
 
 define make-autotools-manifest-commands
 	( \
-		prefix=$(abspath build/$2-$3) \
+		prefix=$(shell pwd)/build/$2-$3 \
 		&& mkdir -p $$prefix/manifest \
 		&& cd build/$2-tmp-$3/$1 \
 		&& $(RM) -r __pkg__ \
 		&& mkdir __pkg__ \
-		&& $(MAKE) $(MAKE_J) $(if $4,$4,install) DESTDIR="$(abspath build/$2-tmp-$3/$1/__pkg__)" &>/dev/null \
+		&& $(MAKE) $(MAKE_J) $(if $4,$4,install) DESTDIR="$(shell pwd)/build/$2-tmp-$3/$1/__pkg__" &>/dev/null \
 		&& cd __pkg__ \
 		&& find . -type f \
-			| cut -c$(strip $(shell echo $(abspath build/$2-$3)xx | wc -c))- \
+			| cut -c$(strip $(shell echo $(shell pwd)/build/$2-$3xx | wc -c))- \
 			| sort \
 			> "$$prefix/manifest/$1.pkg" \
 		&& $(RM) -r __pkg__ \
@@ -815,13 +767,12 @@ define make-build-incremental-package-rule
 
 $1: build/$2-$3/manifest/$1.pkg
 	builddir=build/$2-tmp-$3/$1; \
-	export PATH="$$(abspath build/$2-$(build_os_arch))/bin:$$$$PATH"; \
+	export PATH="$$(shell pwd)/build/$2-$(build_os_arch)/bin:$$$$PATH"; \
 	if [ -f deps/$1/meson.build ]; then \
-		. build/$2-meson-env-$3.rc; \
-		$(NINJA) -C $$$$builddir install; \
-	else \
 		. build/$2-env-$3.rc; \
-		$(MAKE) -C $$$$builddir $(MAKE_J) install; \
+		$(MESON) install -C $$$$builddir; \
+	else \
+		echo "Incremental compilation not supported for: $1"; \
 	fi
 
 endef
@@ -888,9 +839,10 @@ define grab-and-prepare-tarball
 	@mkdir -p deps/$1
 
 	@url=$($(subst -,_,$1)_url) \
+		&& name="$($(subst -,_,$1)_name)" \
 		&& version=$($(subst -,_,$1)_version) \
 		&& expected_hash=$($(subst -,_,$1)_hash) \
-		&& $(call print-tarball-banner,$1,$$version,$$url,$$expected_hash) \
+		&& $(call print-tarball-banner,"$$name",$$version,$$url,$$expected_hash) \
 		&& $(call print-status,$1,Downloading) \
 		&& if command -v curl >/dev/null; then \
 			curl -sSfLo deps/.$1-tarball $$url; \
@@ -909,7 +861,7 @@ define grab-and-prepare-tarball
 		esac
 
 	@$(call print-status,$1,Extracting to deps/$1)
-	@tar -C deps/$1 -x -f deps/.$1-tarball -z --strip-components 1
+	@tar -C deps/$1 -x -f deps/.$1-tarball --strip-components 1
 
 	$(call apply-patches,$1)
 
@@ -921,8 +873,9 @@ define grab-and-prepare-repo
 	@$(RM) -r deps/$1
 
 	@url=$($(subst -,_,$1)_url) \
+		&& name="$($(subst -,_,$1)_name)" \
 		&& version=$($(subst -,_,$1)_version) \
-		&& $(call print-repo-banner,$1,$$version,$$url) \
+		&& $(call print-repo-banner,"$$name",$$version,$$url) \
 		&& $(call print-status,$1,Cloning into deps/$1) \
 		&& git clone -q --recurse-submodules $$url deps/$1 \
 		&& cd deps/$1 \
@@ -939,10 +892,6 @@ define apply-patches
 			\
 			$(call print-status,$1,Applying $$patch); \
 			patch -p1 < $$file &>/dev/null || exit 1; \
-			\
-			if grep '+++' $$file | grep -Eq 'configure\.ac|Makefile\.am'; then \
-				touch ../.$1-reconf-needed; \
-			fi \
 		done
 endef
 

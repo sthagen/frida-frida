@@ -11,10 +11,12 @@ def make_gnome_url(repo_name):
 
 upstreams = {
     "meson": "https://github.com/mesonbuild/meson.git",
+    "frida-elf-cleaner": "https://github.com/termux/termux-elf-cleaner.git",
     "zlib": "https://github.com/madler/zlib.git",
     "brotli": "https://github.com/google/brotli.git",
     "minizip": "https://github.com/zlib-ng/minizip-ng.git",
     "libffi": "https://github.com/libffi/libffi.git",
+    "libunwind": "https://github.com/libunwind/libunwind.git",
     "glib": make_gnome_url("glib"),
     "glib-networking": make_gnome_url("glib-networking"),
     "libnice": "https://gitlab.freedesktop.org/libnice/libnice.git",
@@ -32,7 +34,7 @@ upstreams = {
     "v8/build": "https://chromium.googlesource.com/chromium/src/build",
     "v8/buildtools": "https://chromium.googlesource.com/chromium/src/buildtools",
     "v8/third_party/zlib": "https://chromium.googlesource.com/chromium/src/third_party/zlib",
-    "capstone": "https://github.com/aquynh/capstone.git",
+    "capstone": "https://github.com/capstone-engine/capstone.git",
     "tinycc": "https://repo.or.cz/tinycc.git",
     "quickjs": "https://github.com/bellard/quickjs.git",
 }
