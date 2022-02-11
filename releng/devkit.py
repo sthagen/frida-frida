@@ -315,8 +315,8 @@ def generate_library_unix(package, frida_root, host, flavor, output_dir, library
         libcxx_libs = glob(os.path.join(v8_libdir, "c++", "*.a"))
         library_paths.extend(libcxx_libs)
 
-    ar_version = subprocess.Popen([ar, "--version"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].decode('utf-8')
-    mri_supported = ar_version.startswith("GNU ar ")
+    ar_help = subprocess.Popen([ar, "--help"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].decode('utf-8')
+    mri_supported = "-M [<mri-script]" in ar_help
 
     if mri_supported:
         mri = ["create " + output_path]
@@ -337,8 +337,8 @@ def generate_library_unix(package, frida_root, host, flavor, output_dir, library
             scratch_dir = tempfile.mkdtemp(prefix="devkit")
 
             subprocess.check_output([ar, "x", library_path], cwd=scratch_dir)
-            for object_path in glob(os.path.join(scratch_dir, "*.o")):
-                object_name = os.path.basename(object_path)
+            for object_name in [name for name in os.listdir(scratch_dir) if name.endswith(".o")]:
+                object_path = os.path.join(scratch_dir, object_name)
                 while object_name in object_names:
                     object_name = "_" + object_name
                 object_names.add(object_name)
