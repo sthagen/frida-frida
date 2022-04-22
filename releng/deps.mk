@@ -1,5 +1,5 @@
-frida_deps_version = 20220130
-frida_bootstrap_version = 20220127
+frida_deps_version = 20220318
+frida_bootstrap_version = 20220130
 
 
 frida_base_url = https://github.com/frida
@@ -75,7 +75,7 @@ zlib_deps_for_build = \
 	$(NULL)
 
 libffi_name = libffi
-libffi_version = 3015491cc15aa2cff8cde4a6176bfdc24452ec0b
+libffi_version = cf69550af33ea8af7ace9a5f5ca59b67b00fc8dc
 libffi_url = $(frida_base_url)/libffi.git
 libffi_hash = $(NULL)
 libffi_recipe = meson
@@ -104,7 +104,7 @@ selinux_deps_for_build = \
 	$(NULL)
 
 glib_name = GLib
-glib_version = ad691b32d6cd967e029df4e1b3ed4d04e3059005
+glib_version = bb2a8f4626097a6b1af722cdadb2b23135ca666e
 glib_url = $(frida_base_url)/glib.git
 glib_hash = $(NULL)
 glib_recipe = meson
@@ -202,7 +202,7 @@ vala_deps_for_build = \
 	$(NULL)
 
 elfutils_name = elfutils
-elfutils_version = ea3ec44e6ee32533a04fb861ff938d8f0ab9d37f
+elfutils_version = 1284bbc128473aea220337685985d465607fbac8
 elfutils_url = $(frida_base_url)/elfutils.git
 elfutils_hash = $(NULL)
 elfutils_recipe = meson
@@ -217,7 +217,7 @@ elfutils_deps_for_build = \
 	$(NULL)
 
 libdwarf_name = libdwarf
-libdwarf_version = e7013e4df7cfeaf331da196aaa2735fd2c90560d
+libdwarf_version = 0a5640598201d9a025c33055dde82d6597fcd650
 libdwarf_url = $(frida_base_url)/libdwarf.git
 libdwarf_hash = $(NULL)
 libdwarf_recipe = meson
@@ -234,7 +234,7 @@ libdwarf_deps_for_build = \
 	$(NULL)
 
 xz_name = XZ Utils
-xz_version = deb5bb8cdb5d35bd4cbdfc69d4d7f497d1e6fb01
+xz_version = 83617aba90b2254c91a1ebf1da29240c267151c6
 xz_url = $(frida_base_url)/xz.git
 xz_hash = $(NULL)
 xz_recipe = meson
@@ -286,7 +286,7 @@ minizip_deps += libiconv
 endif
 
 sqlite_name = SQLite
-sqlite_version = 85d71437565bc68959fcf2225cfd5f94b0c8451f
+sqlite_version = 6b876d7c22f10488477d106dfe51f3fbd4ce2d20
 sqlite_url = $(frida_base_url)/sqlite.git
 sqlite_hash = $(NULL)
 sqlite_recipe = meson
@@ -300,7 +300,7 @@ sqlite_deps_for_build = \
 	$(NULL)
 
 libunwind_name = libunwind
-libunwind_version = 7ce337e50dd6dd8b0cd8eb711100b48d8769c2d4
+libunwind_version = 12ac8fe53a2cb23501116a83ee59bd57da06bfe9
 libunwind_url = $(frida_base_url)/libunwind.git
 libunwind_hash = $(NULL)
 libunwind_recipe = meson
@@ -323,7 +323,7 @@ libunwind_deps_for_build = \
 	$(NULL)
 
 glib_networking_name = glib-networking
-glib_networking_version = d30156d5429410330bf3a574db5551cacb7e6acd
+glib_networking_version = 05d01a444f1738b3cfe2d583f49fdba1357e3184
 glib_networking_url = $(frida_base_url)/glib-networking.git
 glib_networking_hash = $(NULL)
 glib_networking_recipe = meson
@@ -366,7 +366,7 @@ libnice_deps_for_build = \
 	$(NULL)
 
 usrsctp_name = usrsctp
-usrsctp_version = 16dab49d6f589fe1cbaa1031e88868e8a462a82e
+usrsctp_version = f2eb0c945560bde753549192fd13b62a59abe32d
 usrsctp_url = $(frida_base_url)/usrsctp.git
 usrsctp_hash = $(NULL)
 usrsctp_recipe = meson
@@ -433,7 +433,7 @@ libpsl_deps_for_build = \
 	$(NULL)
 
 libxml2_name = libxml2
-libxml2_version = 10935fd8fd510307aa44b0b5ebee1f3f27299a29
+libxml2_version = 769bc59b47daa8172bb57255ed9a4987937878d2
 libxml2_url = $(frida_base_url)/libxml2.git
 libxml2_hash = $(NULL)
 libxml2_recipe = meson
@@ -449,7 +449,7 @@ libxml2_deps_for_build = \
 	$(NULL)
 
 libsoup_name = libsoup
-libsoup_version = 4c87b93edb3a4d811e55777025a48af4d03c538b
+libsoup_version = f8683845a91d165aaaefa7db5cf3afbf95f06a60
 libsoup_url = $(frida_base_url)/libsoup.git
 libsoup_hash = $(NULL)
 libsoup_recipe = meson
@@ -502,7 +502,7 @@ capstone_archs := $(shell echo $(host_arch) | sed $(sed_regex_option) \
 	)
 
 quickjs_name = QuickJS
-quickjs_version = 5d4e8de886d1f699ff62559fc44562a56f50027e
+quickjs_version = 1a2ede336e321c2a7769dba8734bb3fefa7a047a
 quickjs_url = $(frida_base_url)/quickjs.git
 quickjs_hash = $(NULL)
 quickjs_recipe = meson
@@ -520,7 +520,7 @@ quickjs_deps_for_build = \
 	$(NULL)
 
 tinycc_name = TinyCC
-tinycc_version = 4a87cff80321274ecb3fdbd54afc2cf0a4fca006
+tinycc_version = a438164dd4c453ae62c1224b4b7997507a388b3d
 tinycc_url = $(frida_base_url)/tinycc.git
 tinycc_hash = $(NULL)
 tinycc_recipe = meson
@@ -534,7 +534,7 @@ tinycc_deps_for_build = \
 	$(NULL)
 
 openssl_name = OpenSSL
-openssl_version = 3d2ab7e65cc426d2336eb25dd739dcb635d4862c
+openssl_version = cf2e4e9b324c6e11d6661b8bce6d0d6aa6afd3a5
 openssl_url = $(frida_base_url)/openssl.git
 openssl_hash = $(NULL)
 openssl_recipe = meson
