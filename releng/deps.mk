@@ -75,7 +75,7 @@ zlib_deps_for_build = \
 	$(NULL)
 
 libffi_name = libffi
-libffi_version = cf69550af33ea8af7ace9a5f5ca59b67b00fc8dc
+libffi_version = 46cbba02a65da9899507a770fc6e9bd1c6cec1e4
 libffi_url = $(frida_base_url)/libffi.git
 libffi_hash = $(NULL)
 libffi_recipe = meson
@@ -538,7 +538,7 @@ tinycc_deps_for_build = \
 	$(NULL)
 
 openssl_name = OpenSSL
-openssl_version = cf2e4e9b324c6e11d6661b8bce6d0d6aa6afd3a5
+openssl_version = bf78536ec5dc0f834f3bf61c11e12c8a70c52bd2
 openssl_url = $(frida_base_url)/openssl.git
 openssl_hash = $(NULL)
 openssl_recipe = meson
