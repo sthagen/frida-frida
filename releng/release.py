@@ -52,6 +52,8 @@ if __name__ == '__main__':
     tag_name = str(version)
 
     def upload_python_bindings_to_pypi(interpreter, extension, extra_env={}, sdist=False, platform_name=None):
+        subprocess.check_call(["git", "clean", "-xffd"], cwd=frida_python_dir)
+
         work_dir = tempfile.mkdtemp(prefix="frida-pypi")
         try:
             if platform_name is not None and platform_name.startswith("android-"):
@@ -198,8 +200,11 @@ if __name__ == '__main__':
             if system == 'FreeBSD':
                 node_versions = ["14.0.0", "16.0.0", "17.0.1"]
                 electron_version = "16.0.0"
+            elif system == 'Windows' and "(x86)" in node:
+                node_versions = ["10.0.0", "12.0.0", "14.0.0", "16.0.0"]
+                electron_version = "18.0.0"
             else:
-                node_versions = ["10.0.0", "12.0.0", "14.0.0", "16.0.0", "17.0.1"]
+                node_versions = ["10.0.0", "12.0.0", "14.0.0", "16.0.0", "18.0.0"]
                 electron_version = "18.0.0"
             do_build_command([npm, "run", "prebuild", "--"] + list(itertools.chain(*[["-t", version] for version in node_versions])))
             do_build_command([npm, "run", "prebuild", "--", "-t", electron_version, "-r", "electron"])
@@ -210,17 +215,6 @@ if __name__ == '__main__':
 
                 if "-node-v81-" in name:
                     continue
-
-                # For Node.js 12.x we need a workaround for https://github.com/lgeiger/node-abi/issues/90
-                new_name = name.replace("-node-v68-", "-node-v72-")
-                if new_name != name:
-                    new_package_path = os.path.join(os.path.dirname(package_path), new_name)
-                    try:
-                        os.rename(package_path, new_package_path)
-                    except FileExistsError:
-                        continue
-                    package_path = new_package_path
-                    name = new_name
 
                 with open(package_path, 'rb') as package_file:
                     upload_to_github(name, "application/gzip", package_file.read())
