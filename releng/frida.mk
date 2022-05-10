@@ -3,6 +3,7 @@ FRIDA_VERSION := $(shell git describe --tags --always --long | sed 's,-,.,g' | c
 include releng/system.mk
 
 FOR_HOST ?= $(build_os_arch)
+SHELL := $(shell which bash)
 
 frida_gum_flags := \
 	--default-library static \
