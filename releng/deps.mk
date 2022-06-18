@@ -1,4 +1,4 @@
-frida_deps_version = 20220528
+frida_deps_version = 20220618
 frida_bootstrap_version = 20220130
 
 
@@ -108,7 +108,7 @@ selinux_deps_for_build = \
 	$(NULL)
 
 glib_name = GLib
-glib_version = bb2a8f4626097a6b1af722cdadb2b23135ca666e
+glib_version = 325d709f1b0b1dcb3e4c5c0ab48ae4733de64ce5
 glib_url = $(frida_base_url)/glib.git
 glib_hash = $(NULL)
 glib_recipe = meson
@@ -189,7 +189,7 @@ bison_deps_for_build = \
 	$(NULL)
 
 vala_name = Vala
-vala_version = e29e312e8529e59f2967b86b9bbb8584dcde7c30
+vala_version = d07b689485b3c79116a569696d36ad7c0e299c02
 vala_url = $(frida_base_url)/vala.git
 vala_hash = $(NULL)
 vala_recipe = meson
