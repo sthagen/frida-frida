@@ -1,4 +1,4 @@
-frida_deps_version = 20220618
+frida_deps_version = 20220701
 frida_bootstrap_version = 20220130
 
 
@@ -108,7 +108,7 @@ selinux_deps_for_build = \
 	$(NULL)
 
 glib_name = GLib
-glib_version = 325d709f1b0b1dcb3e4c5c0ab48ae4733de64ce5
+glib_version = ceb3ada29104dc85dbb116e7dca32ba565aad368
 glib_url = $(frida_base_url)/glib.git
 glib_hash = $(NULL)
 glib_recipe = meson
