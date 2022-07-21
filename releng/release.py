@@ -429,11 +429,12 @@ if __name__ == '__main__':
 
         try:
             r = requests.post(
-                url="https://gitlab.com/api/v4/projects/14857712/ref/master/trigger/pipeline",
-                params={
-                    "token": token,
+                url="https://api.github.com/repos/ViRb3/magisk-frida/dispatches",
+                headers={
+                    "Accept": "application/vnd.github.v3+json",
+                    "Authorization": "token " + token,
                 },
-                data={})
+                json={"event_type": "build"})
             r.raise_for_status()
             print("Triggered magisk-frida CI")
         except Exception as e:
@@ -587,8 +588,8 @@ if __name__ == '__main__':
             upload_file("frida-inject-{version}-freebsd-x86_64", os.path.join(build_dir, "build", "frida-freebsd-x86_64", "bin", "frida-inject"), upload)
             upload_file("frida-gadget-{version}-freebsd-x86_64.so", os.path.join(build_dir, "build", "frida-freebsd-x86_64", "lib", "frida", "64", "frida-gadget.so"), upload)
 
-            upload_python_bindings_to_pypi("/usr/local/bin/python3.8",
-                os.path.join(build_dir, "build", "frida-freebsd-x86_64", "lib", "python3.8", "site-packages", "_frida.so"),
+            upload_python_bindings_to_pypi("/usr/local/bin/python3.9",
+                os.path.join(build_dir, "build", "frida-freebsd-x86_64", "lib", "python3.9", "site-packages", "_frida.so"),
                 platform_name="freebsd-amd64")
 
             upload_node_bindings_to_npm("/usr/local/bin/node", upload, publish=False)
