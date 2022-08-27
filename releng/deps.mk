@@ -1,4 +1,4 @@
-frida_deps_version = 20220701
+frida_deps_version = 20220827
 frida_bootstrap_version = 20220130
 
 
@@ -65,7 +65,7 @@ libiconv_deps_for_build = \
 	$(NULL)
 
 zlib_name = zlib
-zlib_version = 64dd495da9b75ad61400a8de5b2a1bbb9fbbffbb
+zlib_version = 066bd9e6a3438af5ee5637a1200d194befd25b8a
 zlib_url = $(frida_base_url)/zlib.git
 zlib_hash = $(NULL)
 zlib_recipe = meson
@@ -79,7 +79,7 @@ zlib_deps_for_build = \
 	$(NULL)
 
 libffi_name = libffi
-libffi_version = 46cbba02a65da9899507a770fc6e9bd1c6cec1e4
+libffi_version = e8e5df901492dcafe79a7faae72a625e23aa49fc
 libffi_url = $(frida_base_url)/libffi.git
 libffi_hash = $(NULL)
 libffi_recipe = meson
@@ -242,7 +242,7 @@ libdwarf_deps_for_build = \
 	$(NULL)
 
 xz_name = XZ Utils
-xz_version = 83617aba90b2254c91a1ebf1da29240c267151c6
+xz_version = d4bb4f6c690844cf34c19104f5d766f066334be7
 xz_url = $(frida_base_url)/xz.git
 xz_hash = $(NULL)
 xz_recipe = meson
@@ -556,61 +556,36 @@ openssl_deps_for_build = \
 	$(NULL)
 
 v8_name = V8
-v8_version = 5e81562f224b2657993fda62f3aa78c178719046
+v8_version = 6338f7bfb99e793a65f562431ea05e9c9d76cf2b
 v8_url = $(frida_base_url)/v8.git
 v8_hash = $(NULL)
-v8_recipe = custom
+v8_recipe = meson
 v8_patches = \
 	$(NULL)
 v8_options = \
-	use_thin_lto=false \
-	v8_monolithic=true \
-	v8_use_external_startup_data=false \
-	is_component_build=false \
-	v8_enable_debugging_features=false \
-	v8_enable_disassembler=false \
-	v8_enable_gdbjit=false \
-	v8_enable_i18n_support=false \
-	v8_untrusted_code_mitigations=false \
-	treat_warnings_as_errors=false \
-	fatal_linker_warnings=false \
-	use_glib=false \
-	use_goma=false \
-	v8_embedder_string="-frida" \
+	-Ddebug=false \
+	-Dembedder_string=-frida \
+	-Dsnapshot_compression=disabled \
+	-Dpointer_compression=disabled \
+	-Dcppgc_caged_heap=disabled \
 	$(NULL)
 v8_deps = \
 	$(NULL)
 v8_deps_for_build = \
 	$(NULL)
-v8_api_version = 8.0
 
-gn_name = GN
-gn_version = dd3501bfb77bafc41e7493c92e2684fa9709770b
-gn_url = $(frida_base_url)/gn.git
-gn_hash = $(NULL)
-gn_recipe = custom
-gn_patches = \
+libcxx_name = libc++
+libcxx_version = 2cd34c97d4c79aa45178ebb02734feb7074b7d61
+libcxx_url = $(frida_base_url)/libcxx.git
+libcxx_hash = $(NULL)
+libcxx_recipe = meson
+libcxx_patches = \
 	$(NULL)
-gn_options = \
+libcxx_options = \
 	$(NULL)
-gn_deps = \
+libcxx_deps = \
 	$(NULL)
-gn_deps_for_build = \
-	$(NULL)
-
-depot_tools_name = depot_tools
-depot_tools_version = cb340f5b7bbdcaba0fad346b08db91538619a531
-depot_tools_url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
-depot_tools_hash = $(NULL)
-depot_tools_recipe = custom
-depot_tools_patches = \
-	depot_tools-os-support.patch \
-	$(NULL)
-depot_tools_options = \
-	$(NULL)
-depot_tools_deps = \
-	$(NULL)
-depot_tools_deps_for_build = \
+libcxx_deps_for_build = \
 	$(NULL)
 
 

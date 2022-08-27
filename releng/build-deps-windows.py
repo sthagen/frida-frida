@@ -8,7 +8,6 @@ import json
 import os
 from pathlib import Path, PurePath
 import platform
-import re
 import shutil
 import subprocess
 import sys
@@ -18,7 +17,6 @@ from typing import Callable, Dict, List, Tuple
 import urllib.request
 
 from deps import read_dependency_parameters, Bundle, DependencyParameters, PackageSpec
-import v8
 import winenv
 
 
@@ -211,37 +209,28 @@ def synchronize(packages: List[Package], params: DependencyParameters):
 def check_environment():
     try:
         winenv.get_msvs_installation_dir()
-        winenv.get_win10_sdk()
+        winenv.get_windows_sdk()
     except winenv.MissingDependencyError as e:
         print("ERROR: {}".format(e), file=sys.stderr)
         sys.exit(1)
 
-    try:
-        winenv.get_winxp_sdk()
-    except winenv.MissingDependencyError as e:
-        print("WARNING: {} -- building modern binaries".format(e), file=sys.stderr)
-
-    for tool in ["7z", "git", "nasm", "patch", "py"]:
+    for tool in ["7z", "git", "nasm", "py"]:
         if shutil.which(tool) is None:
             print("ERROR: {} not found on PATH".format(tool), file=sys.stderr)
             sys.exit(1)
 
 def grab_and_prepare(name: str, spec: PackageSpec, params: DependencyParameters) -> SourceState:
-    if spec.recipe == 'meson':
-        return grab_and_prepare_regular_package(name, spec)
+    assert spec.recipe == 'meson'
+    return grab_and_prepare_package(name, spec)
 
-    assert name == 'v8'
-    return grab_and_prepare_v8_package(spec, params.get_package_spec("depot_tools"))
-
-def grab_and_prepare_regular_package(name: str, spec: PackageSpec) -> SourceState:
+def grab_and_prepare_package(name: str, spec: PackageSpec) -> SourceState:
     if spec.hash == "":
-        return grab_and_prepare_regular_git_package(name, spec)
+        return grab_and_prepare_git_package(name, spec)
     else:
-        return grab_and_prepare_regular_tarball_package(name, spec)
+        return grab_and_prepare_tarball_package(name, spec)
 
-def grab_and_prepare_regular_git_package(name: str, spec: PackageSpec) -> SourceState:
-    # XXX: Don't need the patch for depot_tools on Windows, so we'll hold off on implementing this.
-    assert (spec.patches == []) or (name == "depot_tools")
+def grab_and_prepare_git_package(name: str, spec: PackageSpec) -> SourceState:
+    assert spec.patches == []
 
     source_dir = DEPS_DIR / name
     if source_dir.exists():
@@ -263,7 +252,7 @@ def grab_and_prepare_regular_git_package(name: str, spec: PackageSpec) -> Source
 
     return source_state
 
-def grab_and_prepare_regular_tarball_package(name: str, spec: PackageSpec) -> SourceState:
+def grab_and_prepare_tarball_package(name: str, spec: PackageSpec) -> SourceState:
     version_file = DEPS_DIR / (name + "-version.txt")
     try:
         current_version = version_file.read_text(encoding='utf-8').strip()
@@ -345,47 +334,6 @@ def grab_and_prepare_regular_tarball_package(name: str, spec: PackageSpec) -> So
 
     return source_state
 
-def grab_and_prepare_v8_package(v8_spec: PackageSpec, depot_spec: PackageSpec) -> SourceState:
-    assert v8_spec.hash == ""
-    assert v8_spec.patches == []
-    assert v8_spec.deps == []
-    assert v8_spec.deps_for_build == []
-
-    assert depot_spec.deps == []
-    assert depot_spec.deps_for_build == []
-    grab_and_prepare_regular_package("depot_tools", depot_spec)
-    depot_dir = DEPS_DIR / "depot_tools"
-    perform("git", "checkout", "-q", "main", cwd=depot_dir)
-    gclient = depot_dir / "gclient.bat"
-    env = make_v8_env(depot_dir)
-    metrics_cfg = depot_dir / "metrics.cfg"
-    if not metrics_cfg.exists():
-        metrics_cfg.write_text("""{"is-googler": false, "countdown": 10, "opt-in": null, "version": 1}""", encoding='utf-8')
-
-    checkout_dir = DEPS_DIR / "v8-checkout"
-    checkout_dir.mkdir(parents=True, exist_ok=True)
-
-    source_dir = checkout_dir / "v8"
-    source_exists = source_dir.exists()
-    if source_exists and query_git_head(source_dir) == v8_spec.version:
-        return SourceState.PRISTINE
-
-    print()
-    if source_exists:
-        print("v8: synchronizing")
-        source_state = SourceState.MODIFIED
-    else:
-        print("v8: cloning into deps\\v8-checkout")
-        source_state = SourceState.PRISTINE
-
-    spec = """solutions = [ {{ "url": "{url}@{version}", "managed": False, "name": "v8", "deps_file": "DEPS", "custom_deps": {{}}, }}, ]""" \
-        .format(url=v8_spec.url, version=v8_spec.version)
-    perform(gclient, "config", "--spec", spec, cwd=checkout_dir, env=env)
-
-    perform(gclient, "sync", cwd=checkout_dir, env=env)
-
-    return source_state
-
 
 def wipe_build_state():
     print("*** Wiping build state")
@@ -418,12 +366,8 @@ def build_package(name: str, role: PackageRole, spec: PackageSpec, extra_options
                 print()
                 print("*** Building {} with arch={} runtime={} config={} spec={}".format(spec.name, arch, config, runtime, spec))
 
-                if spec.recipe == 'meson':
-                    build_using_meson(name, arch, config, runtime, spec, extra_options)
-                else:
-                    assert name == "v8"
-                    assert spec.recipe == 'custom'
-                    build_v8(arch, config, runtime, spec, extra_options)
+                assert spec.recipe == 'meson'
+                build_using_meson(name, arch, config, runtime, spec, extra_options)
 
                 assert manifest_path.exists()
 
@@ -441,6 +385,7 @@ def build_using_meson(name: str, arch: str, config: str, runtime: str, spec: Pac
 
     perform(
         "py", "-3", MESON,
+        "setup",
         build_dir,
         "--prefix", prefix,
         "--default-library", "static",
@@ -505,42 +450,24 @@ def generate_meson_env(arch: str, config: str, runtime: str) -> MesonEnv:
         build_msvc_platform = msvc_platform_from_arch(build_arch)
         msvc_dll_dirs.append(msvc_dir / "bin" / ("Host" + build_msvc_platform) / build_msvc_platform)
 
-    (win10_sdk_dir, win10_sdk_version) = winenv.get_win10_sdk()
-    win10_sdk_dir = Path(win10_sdk_dir)
+    (win_sdk_dir, win_sdk_version) = winenv.get_windows_sdk()
+    win_sdk_dir = Path(win_sdk_dir)
 
-    try:
-        (winxp_sdk_dir, winxp_sdk_version) = winenv.get_winxp_sdk()
-        winxp_sdk_dir = Path(winxp_sdk_dir)
-        if arch == 'x86':
-            target_sdk_bin_dir = winxp_sdk_dir / "Bin"
-            target_sdk_lib_dir = winxp_sdk_dir / "Lib"
-        else:
-            target_sdk_bin_dir = winxp_sdk_dir / "Bin" / msvc_platform
-            target_sdk_lib_dir = winxp_sdk_dir / "Lib" / msvc_platform
-        target_sdk_inc_dirs = [
-            winxp_sdk_dir / "Include",
-        ]
-        target_sdk_defines = [
-            "_USING_V110_SDK71_",
-        ]
-        target_sdk_cxxflags = [
-            # Relax C++11 compliance for XP compatibility.
-            "/Zc:threadSafeInit-",
-        ]
-    except winenv.MissingDependencyError as e:
-        target_sdk_bin_dir = win10_sdk_dir / "Bin" / win10_sdk_version / msvc_platform
-        target_sdk_lib_dir = win10_sdk_dir / "Lib" / win10_sdk_version / "um" / msvc_platform
-        target_sdk_inc_dirs = [
-            win10_sdk_dir / "Include" / win10_sdk_version / "um",
-            win10_sdk_dir / "Include" / win10_sdk_version / "shared",
-        ]
-        target_sdk_defines = []
-        target_sdk_cxxflags = []
+    target_sdk_bin_dir = win_sdk_dir / "Bin" / win_sdk_version / msvc_platform
+    target_sdk_lib_dir = win_sdk_dir / "Lib" / win_sdk_version / "um" / msvc_platform
+    target_sdk_inc_dirs = [
+        win_sdk_dir / "Include" / win_sdk_version / "um",
+        win_sdk_dir / "Include" / win_sdk_version / "shared",
+    ]
+    target_sdk_cxxflags = [
+        # Relax C++11 compliance for XP compatibility.
+        "/Zc:threadSafeInit-",
+    ]
 
     clflags = "/D" + " /D".join([
       "_UNICODE",
       "UNICODE",
-    ] + target_sdk_defines)
+    ])
 
     platform_cflags = []
     if arch == 'x86':
@@ -567,14 +494,14 @@ def generate_meson_env(arch: str, config: str, runtime: str) -> MesonEnv:
         msvc_dir / "include",
         msvc_dir / "atlmfc" / "include",
         vc_dir / "Auxiliary" / "VS" / "include",
-        win10_sdk_dir / "Include" / win10_sdk_version / "ucrt",
+        win_sdk_dir / "Include" / win_sdk_version / "ucrt",
     ] + target_sdk_inc_dirs])
 
     library_path = ";".join([str(path) for path in [
         msvc_dir / "lib" / msvc_platform,
         msvc_dir / "atlmfc" / "lib" / msvc_platform,
         vc_dir / "Auxiliary" / "VS" / "lib" / msvc_platform,
-        win10_sdk_dir / "Lib" / win10_sdk_version / "ucrt" / msvc_platform,
+        win_sdk_dir / "Lib" / win_sdk_version / "ucrt" / msvc_platform,
         target_sdk_lib_dir,
     ]])
 
@@ -590,7 +517,6 @@ set VCINSTALLDIR={vc_install_dir}
 set Platform={platform}
 set VALA={valac}
 set VALAFLAGS={vala_flags}
-set DEPOT_TOOLS_WIN_TOOLCHAIN=0
 """.format(
             exe_path=exe_path,
             include_path=include_path,
@@ -699,112 +625,6 @@ def detect_bootstrap_valac() -> str:
     return cached_bootstrap_valac
 
 
-def build_v8(arch: str, config: str, runtime: str, spec: PackageSpec, extra_options: List[str]):
-    depot_dir = DEPS_DIR / "depot_tools"
-    gn = depot_dir / "gn.bat"
-    env = make_v8_env(depot_dir)
-
-    source_dir = DEPS_DIR / "v8-checkout" / "v8"
-
-    build_dir = get_tmp_path(arch, config, runtime) / "v8"
-    if not (build_dir / "build.ninja").exists():
-        if build_dir.exists():
-            shutil.rmtree(build_dir)
-
-        if config == 'Release':
-            configuration_args = [
-                "is_official_build=true",
-                "is_debug=false",
-                "v8_enable_v8_checks=false",
-            ]
-        else:
-            configuration_args = [
-                "is_debug=true",
-                "v8_enable_v8_checks=true",
-            ]
-
-        (win10_sdk_dir, win10_sdk_version) = winenv.get_win10_sdk()
-
-        args = " ".join([
-            "target_cpu=\"{}\"".format(msvc_platform_from_arch(arch)),
-        ] + configuration_args + [
-            "use_crt=\"{}\"".format(runtime),
-            "is_clang=false",
-            "visual_studio_path=\"{}\"".format(winenv.get_msvs_installation_dir()),
-            "visual_studio_version=\"{}\"".format(winenv.get_msvs_version()),
-            "wdk_path=\"{}\"".format(win10_sdk_dir),
-            "windows_sdk_path=\"{}\"".format(win10_sdk_dir),
-            "symbol_level=0",
-            "strip_absolute_paths_from_debug_symbols=true",
-        ] + spec.options + extra_options)
-
-        perform(gn, "gen", PurePath("..", "..", "..") / build_dir.relative_to(ROOT_DIR),
-                "--args=" + args, cwd=source_dir, env=env)
-
-    monolith_path = build_dir / "obj" / "v8_monolith.lib"
-    perform(NINJA, "v8_monolith", cwd=build_dir, env=env)
-
-    version, api_version = v8.detect_version(source_dir)
-
-    prefix = get_prefix_path(arch, config, runtime)
-
-    include_dir = prefix / "include" / ("v8-" + api_version) / "v8"
-    header_dirs = [
-        source_dir / "include",
-        build_dir / "gen" / "include",
-    ]
-    for header_dir in header_dirs:
-        header_files = [PurePath(path.relative_to(header_dir)) for path in header_dir.glob("**/*.h")]
-        copy_files(header_dir, header_files, include_dir)
-
-    v8.patch_config_header(include_dir / "v8config.h", source_dir, build_dir, gn, env)
-
-    lib_dir = prefix / "lib"
-
-    pkgconfig_dir = lib_dir / "pkgconfig"
-    pkgconfig_dir.mkdir(parents=True, exist_ok=True)
-
-    libv8_path = lib_dir / "libv8-{}.a".format(api_version)
-    shutil.copyfile(monolith_path, libv8_path)
-
-    (pkgconfig_dir / "v8-{}.pc".format(api_version)).write_text("""\
-prefix={prefix}
-libdir=${{prefix}}/lib
-includedir=${{prefix}}/include/v8-{api_version}
-
-Name: V8
-Description: V8 JavaScript Engine
-Version: {version}
-Libs: -L${{libdir}} -lv8-{api_version}
-Libs.private: {libs_private}
-Cflags: -I${{includedir}} -I${{includedir}}/v8""" \
-        .format(
-            prefix=prefix.as_posix(),
-            version=version,
-            api_version=api_version,
-            libs_private="-lshlwapi -lwinmm"
-        ),
-        encoding='utf-8')
-
-    manifest_lines = [line.format(api_version=api_version) for line in [
-        "lib/libv8-{api_version}.a",
-        "lib/pkgconfig/v8-{api_version}.pc",
-    ]]
-    for header in include_dir.glob("**/*"):
-        manifest_lines.append(str(header.relative_to(prefix).as_posix()))
-    manifest_lines.sort()
-    manifest_path = get_manifest_path("v8", arch, config, runtime)
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text("\n".join(manifest_lines), encoding='utf-8')
-
-def make_v8_env(depot_dir: Path) -> ShellEnv:
-    env = {}
-    env.update(os.environ)
-    env["PATH"] = str(depot_dir) + ";" + env["PATH"]
-    env["DEPOT_TOOLS_WIN_TOOLCHAIN"] = "0"
-    return env
-
-
 def package(bundle_ids: List[Bundle], params: DependencyParameters):
     with tempfile.TemporaryDirectory(prefix="frida-deps") as tempdir:
         tempdir = Path(tempdir)
@@ -907,7 +727,7 @@ def file_is_sdk_related(candidate: PurePath) -> bool:
     subdir = parts[1]
 
     if subdir == "bin":
-        return False
+        return parts[0].endswith("-release-static") and candidate.name.startswith("v8-mksnapshot-")
 
     if subdir == "lib":
         filename = candidate.name
