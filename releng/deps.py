@@ -15,6 +15,8 @@ import tempfile
 import time
 from typing import Dict, List, Tuple
 import urllib.request
+if platform.system() == 'Windows':
+    import winenv
 
 
 BUNDLE_URL = "https://build.frida.re/deps/{version}/{filename}"
@@ -56,6 +58,10 @@ class DependencyParameters:
         return self.packages[name.replace("-", "_")]
 
 
+class CommandError(Exception):
+    pass
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
@@ -64,37 +70,53 @@ def main():
 
     command = subparsers.add_parser("sync", help="ensure prebuilt dependencies are up-to-date")
     command.add_argument("bundle", help="bundle to synchronize", choices=bundle_choices)
-    command.add_argument("os_arch", help="OS/arch")
+    command.add_argument("host", help="OS/arch")
     command.add_argument("location", help="filesystem location")
-    command.set_defaults(func=lambda args: sync(Bundle[args.bundle.upper()], args.os_arch, Path(args.location)))
+    command.set_defaults(func=lambda args: sync(Bundle[args.bundle.upper()], args.host.lower(), Path(args.location).resolve()))
 
     command = subparsers.add_parser("roll", help="build and upload prebuilt dependencies if needed")
     command.add_argument("bundle", help="bundle to roll", choices=bundle_choices)
-    command.add_argument("os_arch", help="OS/arch")
+    command.add_argument("host", help="OS/arch")
     command.add_argument("--activate", default=False, action='store_true')
-    command.set_defaults(func=lambda args: roll(Bundle[args.bundle.upper()], args.os_arch, args.activate))
+    command.set_defaults(func=lambda args: roll(Bundle[args.bundle.upper()], args.host.lower(), args.activate))
 
     command = subparsers.add_parser("wait", help="wait for prebuilt dependencies if needed")
     command.add_argument("bundle", help="bundle to wait for", choices=bundle_choices)
-    command.add_argument("os_arch", help="OS/arch")
-    command.set_defaults(func=lambda args: wait(Bundle[args.bundle.upper()], args.os_arch))
+    command.add_argument("host", help="OS/arch")
+    command.set_defaults(func=lambda args: wait(Bundle[args.bundle.upper()], args.host.lower()))
 
     command = subparsers.add_parser("bump", help="bump dependency versions")
     command.set_defaults(func=lambda args: bump())
 
     args = parser.parse_args()
     if 'func' in args:
-        args.func(args)
+        try:
+            args.func(args)
+        except CommandError as e:
+            print(e, file=sys.stderr)
+            sys.exit(1)
     else:
         parser.print_usage(file=sys.stderr)
         sys.exit(1)
 
 
-def sync(bundle: Bundle, os_arch: str, location: Path):
+def sync(bundle: Bundle, host: str, location: Path):
     params = read_dependency_parameters()
     version = params.deps_version
 
     bundle_nick = bundle.name.lower() if bundle != Bundle.SDK else bundle.name
+
+    # XXX: This is Windows-only for now, as we use setup-env.sh to do the heavy lifting on other platforms.
+    tokens = host.split("-")
+    if len(tokens) == 2:
+        tokens += ["release"]
+    host_os, host_arch, host_config = tokens
+    assert host_os == "windows"
+
+    if bundle == Bundle.SDK:
+        msvs_platform = winenv.msvs_platform_from_arch(host_arch)
+        subdir_name = f"{msvs_platform}-{host_config.title()}"
+        location = location / subdir_name
 
     if location.exists():
         try:
@@ -105,7 +127,7 @@ def sync(bundle: Bundle, os_arch: str, location: Path):
             pass
         shutil.rmtree(location)
 
-    (url, filename, suffix) = compute_bundle_parameters(bundle, os_arch, version)
+    (url, filename, suffix) = compute_bundle_parameters(bundle, host, version)
 
     local_bundle = location.parent / filename
     if local_bundle.exists():
@@ -113,30 +135,46 @@ def sync(bundle: Bundle, os_arch: str, location: Path):
         archive_path = local_bundle
         archive_is_temporary = False
     else:
-        print("Downloading {}...".format(bundle_nick), flush=True)
+        if bundle == Bundle.SDK:
+            print(f"Downloading SDK {version} for {subdir_name}...", flush=True)
+        else:
+            print(f"Downloading {bundle_nick} {version}...", flush=True)
         with urllib.request.urlopen(url) as response, tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as archive:
             shutil.copyfileobj(response, archive)
             archive_path = Path(archive.name)
             archive_is_temporary = True
-        print("Extracting {}...".format(bundle_nick), flush=True)
+        print(f"Extracting {bundle_nick}...", flush=True)
 
     try:
-        # XXX: This is Windows-only for now, as we use setup-env.sh to do the heavy lifting on other platforms.
+        if bundle == Bundle.SDK:
+            target_dir = location / "tmp"
+        else:
+            target_dir = location.parent
+
         subprocess.run([
             archive_path,
-            "-o" + str(location.parent),
+            "-o" + str(target_dir),
             "-y"
-        ], check=True)
+        ], capture_output=True, check=True)
+
+        if bundle == Bundle.SDK:
+            shutil.move(target_dir / "sdk-windows" / "VERSION.txt", location / "VERSION.txt")
+            for file in (target_dir / "sdk-windows" / subdir_name).iterdir():
+                shutil.move(file, location)
+            shutil.rmtree(target_dir)
     finally:
         if archive_is_temporary:
             archive_path.unlink()
 
 
-def roll(bundle: Bundle, os_arch: str, activate: bool):
+def roll(bundle: Bundle, host: str, activate: bool):
     params = read_dependency_parameters()
     version = params.deps_version
 
-    (public_url, filename, suffix) = compute_bundle_parameters(bundle, os_arch, version)
+    if activate and bundle == Bundle.SDK:
+        configure_bootstrap_version(version)
+
+    (public_url, filename, suffix) = compute_bundle_parameters(bundle, host, version)
 
     # First do a quick check to avoid hitting S3 in most cases.
     request = urllib.request.Request(public_url)
@@ -146,30 +184,26 @@ def roll(bundle: Bundle, os_arch: str, activate: bool):
             return
     except urllib.request.HTTPError as e:
         if e.code != 404:
-            return
-
-    if platform.system() == 'Windows':
-        s3cmd = [
-            "py", "-3",
-            Path(sys.executable).parent / "Scripts" / "s3cmd"
-        ]
-    else:
-        s3cmd = ["s3cmd"]
+            raise CommandError("network error") from e
 
     s3_url = "s3://build.frida.re/deps/{version}/{filename}".format(version=version, filename=filename)
 
     # We will most likely need to build, but let's check S3 to be certain.
-    if "404" not in subprocess.run(s3cmd + ["info", s3_url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='utf-8').stdout:
+    r = subprocess.run(["aws", "s3", "ls", s3_url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='utf-8')
+    if r.returncode == 0:
         return
+    if r.returncode != 1:
+        raise CommandError(f"unable to access S3: {r.stdout.strip()}")
 
     artifact = BUILD_DIR / filename
     if artifact.exists():
         artifact.unlink()
 
-    if os_arch.startswith("windows-"):
+    if host.startswith("windows-"):
         subprocess.run([
-                           "py", "-3", RELENG_DIR / "build-deps-windows.py",
+                           sys.executable, RELENG_DIR / "build-deps-windows.py",
                            "--bundle=" + bundle.name.lower(),
+                           "--host=" + host,
                        ],
                        check=True)
     else:
@@ -181,25 +215,22 @@ def roll(bundle: Bundle, os_arch: str, activate: bool):
                            gnu_make,
                            "-C", ROOT_DIR,
                            "-f", "Makefile.{}.mk".format(bundle.name.lower()),
-                           "FRIDA_HOST=" + os_arch,
+                           "FRIDA_HOST=" + host,
                        ],
                        check=True)
 
-    subprocess.run(s3cmd + ["put", artifact, s3_url], check=True)
+    subprocess.run(["aws", "s3", "cp", artifact, s3_url], check=True)
 
     # Use the shell for Windows compatibility, where npm generates a .bat script.
     subprocess.run("cfcli purge " + public_url, shell=True, check=True)
 
-    if activate:
-        deps_content = DEPS_MK_PATH.read_text(encoding='utf-8')
-        deps_content = re.sub("^frida_bootstrap_version = (.+)$", "frida_bootstrap_version = {}".format(version),
-                              deps_content, flags=re.MULTILINE)
-        DEPS_MK_PATH.write_bytes(deps_content.encode('utf-8'))
+    if activate and bundle == Bundle.TOOLCHAIN:
+        configure_bootstrap_version(version)
 
 
-def wait(bundle: Bundle, os_arch: str):
+def wait(bundle: Bundle, host: str):
     params = read_dependency_parameters()
-    (url, filename, suffix) = compute_bundle_parameters(bundle, os_arch, params.deps_version)
+    (url, filename, suffix) = compute_bundle_parameters(bundle, host, params.deps_version)
 
     request = urllib.request.Request(url)
     request.get_method = lambda: "HEAD"
@@ -262,9 +293,9 @@ def bump():
         print("")
 
 
-def compute_bundle_parameters(bundle: Bundle, os_arch: str, version: str) -> Tuple[str, str, str]:
-    suffix = ".exe" if os_arch.startswith("windows-") else ".tar.bz2"
-    filename = "{}-{}{}".format(bundle.name.lower(), os_arch, suffix)
+def compute_bundle_parameters(bundle: Bundle, host: str, version: str) -> Tuple[str, str, str]:
+    suffix = ".exe" if host.startswith("windows-") else ".tar.bz2"
+    filename = "{}-{}{}".format(bundle.name.lower(), host, suffix)
     url = BUNDLE_URL.format(version=version, filename=filename)
     return (url, filename, suffix)
 
@@ -300,6 +331,13 @@ def read_dependency_parameters(host_defines: Dict[str, str] = {}) -> DependencyP
             raw_params["frida_deps_version"],
             raw_params["frida_bootstrap_version"],
             packages)
+
+
+def configure_bootstrap_version(version):
+    deps_content = DEPS_MK_PATH.read_text(encoding='utf-8')
+    deps_content = re.sub("^frida_bootstrap_version = (.+)$", "frida_bootstrap_version = {}".format(version),
+                          deps_content, flags=re.MULTILINE)
+    DEPS_MK_PATH.write_bytes(deps_content.encode('utf-8'))
 
 
 def parse_string_value(v: str, raw_params: Dict[str, str]) -> str:

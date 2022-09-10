@@ -13,7 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Callable, Dict, List, Tuple
+from typing import AbstractSet, Callable, Dict, List, Tuple
 import urllib.request
 
 from deps import read_dependency_parameters, Bundle, DependencyParameters, PackageSpec
@@ -26,6 +26,12 @@ class PackageRole(Enum):
 
 
 Package = Tuple[str, PackageRole, List[str]]
+
+
+@dataclass
+class HostSelector:
+    architectures: AbstractSet[str]
+    configurations: AbstractSet[str]
 
 
 class SourceState(Enum):
@@ -42,6 +48,9 @@ class MesonEnv:
     path: str
     shell_env: ShellEnv
 
+
+ALL_ARCHITECTURES = {'x86_64', 'x86'}
+ALL_CONFIGURATIONS = {'Release', 'Debug'}
 
 ARCHITECTURES = {
     PackageRole.TOOL: ['x86'],
@@ -138,6 +147,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bundle", help="only build one specific bundle",
                         default=None, choices=[name.lower() for name in Bundle.__members__])
+    parser.add_argument("--host", help="only build for one specific host",
+                        default=None)
     parser.add_argument("--v8", help="whether to include V8 in the SDK",
                         default='enabled', choices=['enabled', 'disabled'])
 
@@ -147,6 +158,26 @@ def main():
         bundle_ids = [Bundle.TOOLCHAIN, Bundle.SDK]
     else:
         bundle_ids = [Bundle[arguments.bundle.upper()]]
+
+    host = arguments.host
+    if host is None:
+        host_selector = HostSelector(ALL_ARCHITECTURES, ALL_CONFIGURATIONS)
+    else:
+        tokens = host.split("-")
+        if len(tokens) not in [2, 3]:
+            parser.error("invalid host")
+        if len(tokens) == 2:
+            host += "-release"
+            tokens += ["release"]
+        os, arch, config = tokens
+        config = config.title()
+        if os != "windows":
+            parser.error(f"invalid os: {os}")
+        if arch not in ALL_ARCHITECTURES:
+            parser.error(f"invalid architecture: {arch}")
+        if config not in ALL_CONFIGURATIONS:
+            parser.error(f"invalid config: {config}")
+        host_selector = HostSelector({arch}, {config})
 
     selected = set([pkg_name for bundle_id in bundle_ids for pkg_name in ALL_BUNDLES[bundle_id]])
     packages = [pkg for pkg in ALL_PACKAGES if pkg[0] in selected]
@@ -163,10 +194,10 @@ def main():
         synchronize(packages, params)
         sync_ended_at = time.time()
 
-        build(packages, params)
+        build(packages, params, host_selector)
         build_ended_at = time.time()
 
-        package(bundle_ids, params)
+        package(bundle_ids, params, host)
         packaging_ended_at = time.time()
     except subprocess.CalledProcessError as e:
         print(e, file=sys.stderr)
@@ -214,7 +245,7 @@ def check_environment():
         print("ERROR: {}".format(e), file=sys.stderr)
         sys.exit(1)
 
-    for tool in ["7z", "git", "nasm", "py"]:
+    for tool in ["7z", "git", "nasm"]:
         if shutil.which(tool) is None:
             print("ERROR: {} not found on PATH".format(tool), file=sys.stderr)
             sys.exit(1)
@@ -238,13 +269,13 @@ def grab_and_prepare_git_package(name: str, spec: PackageSpec) -> SourceState:
             source_state = SourceState.PRISTINE
         else:
             print()
-            print("{name}: synchronizing".format(name=name))
+            print("{name}: synchronizing".format(name=name), flush=True)
             perform("git", "fetch", "-q", cwd=source_dir)
             perform("git", "checkout", "-q", spec.version, cwd=source_dir)
             source_state = SourceState.MODIFIED
     else:
         print()
-        print("{name}: cloning into deps\\{name}".format(name=name))
+        print("{name}: cloning into deps\\{name}".format(name=name), flush=True)
         DEPS_DIR.mkdir(parents=True, exist_ok=True)
         perform("git", "clone", "-q", "--recurse-submodules", spec.url, name, cwd=DEPS_DIR)
         perform("git", "checkout", "-q", spec.version, cwd=source_dir)
@@ -271,7 +302,7 @@ def grab_and_prepare_tarball_package(name: str, spec: PackageSpec) -> SourceStat
     archive_path = None
     sha256 = hashlib.sha256()
     try:
-        print("> Downloading", spec.url)
+        print("> Downloading", spec.url, flush=True)
 
         with urllib.request.urlopen(spec.url) as response, tempfile.NamedTemporaryFile(delete=False) as archive:
             archive_path = Path(archive.name)
@@ -286,7 +317,7 @@ def grab_and_prepare_tarball_package(name: str, spec: PackageSpec) -> SourceStat
         if digest != spec.hash:
             raise ValueError("{} tarball is corrupted; its hash is {}".format(name, digest))
 
-        print("> Extracting", spec.url)
+        print("> Extracting", spec.url, flush=True)
 
         staging_dir = source_dir / "__staging__"
         staging_dir.mkdir(parents=True)
@@ -317,7 +348,7 @@ def grab_and_prepare_tarball_package(name: str, spec: PackageSpec) -> SourceStat
                 pass
 
     for patch_name in spec.patches:
-        print("> Applying", patch_name)
+        print("> Applying", patch_name, flush=True)
         patch_path = Path(RELENG_DIR / "patches" / patch_name)
         patch_data = patch_path.read_text(encoding='utf-8')
         p = subprocess.Popen(["patch", "-p1"],
@@ -336,35 +367,41 @@ def grab_and_prepare_tarball_package(name: str, spec: PackageSpec) -> SourceStat
 
 
 def wipe_build_state():
-    print("*** Wiping build state")
+    print("*** Wiping build state", flush=True)
     locations = [
         ("existing packages", get_prefix_root()),
         ("build directories", get_tmp_root()),
     ]
     for description, path in locations:
         if path.exists():
-            print("Wiping", description)
+            print("Wiping", description, flush=True)
             shutil.rmtree(path)
 
 
-def build(packages: List[Package], params: DependencyParameters):
+def build(packages: List[Package], params: DependencyParameters, host_selector: HostSelector):
     for name, role, extra_options in packages:
-        build_package(name, role, params.get_package_spec(name), extra_options)
+        build_package(name, role, params.get_package_spec(name), extra_options, host_selector)
 
-def build_package(name: str, role: PackageRole, spec: PackageSpec, extra_options: List[str]):
+def build_package(name: str, role: PackageRole, spec: PackageSpec, extra_options: List[str], host_selector: HostSelector):
     archs = ARCHITECTURES[role]
     configs = CONFIGURATIONS[role]
     runtimes = RUNTIMES[role]
 
     for arch in archs:
+        if arch not in host_selector.architectures:
+            continue
+
         for config in configs:
+            if config not in host_selector.configurations:
+                continue
+
             for runtime in runtimes:
                 manifest_path = get_manifest_path(name, arch, config, runtime)
                 if manifest_path.exists():
                     continue
 
                 print()
-                print("*** Building {} with arch={} runtime={} config={} spec={}".format(spec.name, arch, config, runtime, spec))
+                print("*** Building {} with arch={} runtime={} config={} spec={}".format(spec.name, arch, config, runtime, spec), flush=True)
 
                 assert spec.recipe == 'meson'
                 build_using_meson(name, arch, config, runtime, spec, extra_options)
@@ -384,7 +421,7 @@ def build_using_meson(name: str, arch: str, config: str, runtime: str, spec: Pac
         shutil.rmtree(build_dir)
 
     perform(
-        "py", "-3", MESON,
+        sys.executable, MESON,
         "setup",
         build_dir,
         "--prefix", prefix,
@@ -403,7 +440,7 @@ def build_using_meson(name: str, arch: str, config: str, runtime: str, spec: Pac
 
     manifest_lines = []
     install_locations = json.loads(subprocess.check_output([
-            "py", "-3", MESON,
+            sys.executable, MESON,
             "introspect",
             "--installed"
         ],
@@ -441,13 +478,13 @@ def generate_meson_env(arch: str, config: str, runtime: str) -> MesonEnv:
     vc_dir = Path(winenv.get_msvs_installation_dir()) / "VC"
     vc_install_dir = str(vc_dir) + "\\"
 
-    msvc_platform = msvc_platform_from_arch(arch)
+    msvc_platform = winenv.msvc_platform_from_arch(arch)
     msvc_dir = Path(winenv.get_msvc_tool_dir())
-    msvc_bin_dir = msvc_dir / "bin" / ("Host" + msvc_platform_from_arch(build_arch)) / msvc_platform
+    msvc_bin_dir = msvc_dir / "bin" / ("Host" + winenv.msvc_platform_from_arch(build_arch)) / msvc_platform
 
     msvc_dll_dirs = []
     if arch != build_arch:
-        build_msvc_platform = msvc_platform_from_arch(build_arch)
+        build_msvc_platform = winenv.msvc_platform_from_arch(build_arch)
         msvc_dll_dirs.append(msvc_dir / "bin" / ("Host" + build_msvc_platform) / build_msvc_platform)
 
     (win_sdk_dir, win_sdk_version) = winenv.get_windows_sdk()
@@ -543,9 +580,9 @@ EXIT /B %_res%""".format(rc_path=rc_path, flags=clflags), encoding='utf-8')
     (env_dir / "meson.bat").write_text("""@ECHO OFF
 SETLOCAL EnableExtensions
 SET _res=0
-py -3 "{meson_path}" %* || SET _res=1
+"{python_interpreter}" "{meson_path}" %* || SET _res=1
 ENDLOCAL & SET _res=%_res%
-EXIT /B %_res%""".format(meson_path=MESON), encoding='utf-8')
+EXIT /B %_res%""".format(python_interpreter=sys.executable, meson_path=MESON), encoding='utf-8')
 
     pkgconfig_path = BOOTSTRAP_TOOLCHAIN_DIR / "bin" / "pkg-config.exe"
     pkgconfig_lib_dir = prefix / "lib" / "pkgconfig"
@@ -567,9 +604,9 @@ EXIT /B %_res%""".format(
     (env_dir / "flex.bat").write_text("""@ECHO OFF
 SETLOCAL EnableExtensions
 SET _res=0
-py -3 "{wrapper_path}" %* || SET _res=1
+"{python_interpreter}" "{wrapper_path}" %* || SET _res=1
 ENDLOCAL & SET _res=%_res%
-EXIT /B %_res%""".format(wrapper_path=flex_wrapper_path), encoding='utf-8')
+EXIT /B %_res%""".format(python_interpreter=sys.executable, wrapper_path=flex_wrapper_path), encoding='utf-8')
     flex_wrapper_path.write_text("""import subprocess
 import sys
 
@@ -582,9 +619,9 @@ sys.exit(subprocess.call([r"{flex_path}"] + args))
     (env_dir / "bison.bat").write_text("""@ECHO OFF
 SETLOCAL EnableExtensions
 SET _res=0
-py -3 "{wrapper_path}" %* || SET _res=1
+"{python_interpreter}" "{wrapper_path}" %* || SET _res=1
 ENDLOCAL & SET _res=%_res%
-EXIT /B %_res%""".format(wrapper_path=bison_wrapper_path), encoding='utf-8')
+EXIT /B %_res%""".format(python_interpreter=sys.executable, wrapper_path=bison_wrapper_path), encoding='utf-8')
     bison_wrapper_path.write_text("""\
 import os
 import subprocess
@@ -625,14 +662,17 @@ def detect_bootstrap_valac() -> str:
     return cached_bootstrap_valac
 
 
-def package(bundle_ids: List[Bundle], params: DependencyParameters):
+def package(bundle_ids: List[Bundle], params: DependencyParameters, host: str | None):
     with tempfile.TemporaryDirectory(prefix="frida-deps") as tempdir:
         tempdir = Path(tempdir)
 
         toolchain_filename = "toolchain-windows-x86.exe"
         toolchain_path = ROOT_DIR / "build" / toolchain_filename
 
-        sdk_filename = "sdk-windows-any.exe"
+        if host is None:
+            sdk_filename = "sdk-windows-any.exe"
+        else:
+            sdk_filename = f"sdk-{host}.exe"
         sdk_path = ROOT_DIR / "build" / sdk_filename
 
         print("About to assemble:")
@@ -642,7 +682,7 @@ def package(bundle_ids: List[Bundle], params: DependencyParameters):
             print("\t* " + sdk_filename)
 
         print()
-        print("Determining what to include...")
+        print("Determining what to include...", flush=True)
 
         prefixes_dir = get_prefix_root()
 
@@ -666,7 +706,12 @@ def package(bundle_ids: List[Bundle], params: DependencyParameters):
 
         sdk_built_files = []
         if Bundle.SDK in bundle_ids:
-            for prefix in prefixes_dir.glob("*-static"):
+            if host is None:
+                prefix_pattern = "*-static"
+            else:
+                arch, config = host.split("-")[1:]
+                prefix_pattern = "-".join([arch, config, "static"])
+            for prefix in prefixes_dir.glob(prefix_pattern):
                 for root, dirs, files in os.walk(prefix):
                     relpath = PurePath(root).relative_to(prefixes_dir)
                     all_files = [relpath / f for f in files]
@@ -675,7 +720,7 @@ def package(bundle_ids: List[Bundle], params: DependencyParameters):
                         (prefix.parent / (prefix.name[:-7] + "-dynamic") / "lib").glob("**/*.a")]
             sdk_built_files.sort()
 
-        print("Copying files...")
+        print("Copying files...", flush=True)
         if Bundle.TOOLCHAIN in bundle_ids:
             toolchain_tempdir = tempdir / "toolchain-windows"
             copy_files(BOOTSTRAP_TOOLCHAIN_DIR, toolchain_mixin_files, toolchain_tempdir)
@@ -689,7 +734,7 @@ def package(bundle_ids: List[Bundle], params: DependencyParameters):
             fix_manifests(sdk_tempdir)
             (sdk_tempdir / "VERSION.txt").write_text(params.deps_version + "\n", encoding='utf-8')
 
-        print("Compressing...")
+        print("Compressing...", flush=True)
         compression_switches = ["a", "-mx{}".format(COMPRESSION_LEVEL), "-sfx7zCon.sfx"]
 
         if Bundle.TOOLCHAIN in bundle_ids:
@@ -700,7 +745,7 @@ def package(bundle_ids: List[Bundle], params: DependencyParameters):
             sdk_path.unlink(missing_ok=True)
             perform("7z", *compression_switches, "-r", sdk_path, "sdk-windows", cwd=tempdir)
 
-        print("All done.")
+        print("All done.", flush=True)
 
 def fix_manifests(root: Path):
     for manifest_path in root.glob("**/manifest/*.pkg"):
@@ -752,7 +797,6 @@ def file_is_vala_toolchain_related(candidate: PurePath) -> bool:
 def is_vala_toolchain_vapi_directory(directory: PurePath) -> bool:
     parts = directory.parts[-3:]
     if len(parts) != 3:
-        print("D parts:", parts)
         return False
     return parts[0] == "share" and \
         parts[1].startswith("vala-") and \
@@ -768,7 +812,7 @@ def transform_sdk_dest(srcfile: PurePath) -> PurePath:
 
     arch, config, runtime = rootdir.split("-")
     rootdir = "-".join([
-        msvs_platform_from_arch(arch),
+        winenv.msvs_platform_from_arch(arch),
         config.title()
     ])
 
@@ -795,14 +839,13 @@ def ensure_bootstrap_toolchain(bootstrap_version: str) -> SourceState:
     else:
         source_state = SourceState.PRISTINE
 
-    print("Downloading bootstrap toolchain...")
-    with urllib.request.urlopen("https://build.frida.re/deps/{version}/toolchain-windows-x86.exe" \
-            .format(version=bootstrap_version)) as response, \
+    print(f"Downloading bootstrap toolchain {bootstrap_version}...", flush=True)
+    with urllib.request.urlopen(f"https://build.frida.re/deps/{bootstrap_version}/toolchain-windows-x86.exe") as response, \
             tempfile.NamedTemporaryFile(suffix=".exe", delete=False) as archive:
         shutil.copyfileobj(response, archive)
         toolchain_archive_path = archive.name
 
-    print("Extracting bootstrap toolchain...")
+    print("Extracting bootstrap toolchain...", flush=True)
     try:
         tempdir = Path(tempfile.mkdtemp(prefix="frida-bootstrap-toolchain"))
         try:
@@ -813,7 +856,6 @@ def ensure_bootstrap_toolchain(bootstrap_version: str) -> SourceState:
                     "-y"
                 ])
             except subprocess.CalledProcessError as e:
-                print("Oops:", e.output.decode('utf-8'))
                 raise e
             shutil.move(tempdir / "toolchain-windows", BOOTSTRAP_TOOLCHAIN_DIR)
         finally:
@@ -838,12 +880,6 @@ def get_tmp_root() -> Path:
 def get_tmp_path(arch: str, config: str, runtime: str) -> Path:
     return get_tmp_root() / "{}-{}-{}".format(arch, config.lower(), runtime)
 
-def msvs_platform_from_arch(arch: str) -> str:
-    return 'x64' if arch == 'x86_64' else 'Win32'
-
-def msvc_platform_from_arch(arch: str) -> str:
-    return 'x64' if arch == 'x86_64' else 'x86'
-
 def vscrt_from_configuration_and_runtime(config: str, runtime: str) -> str:
     result = "md" if runtime == 'dynamic' else "mt"
     if config == 'Debug':
@@ -852,7 +888,7 @@ def vscrt_from_configuration_and_runtime(config: str, runtime: str) -> str:
 
 
 def perform(*args, **kwargs):
-    print(">", " ".join([str(arg) for arg in args]))
+    print(">", " ".join([str(arg) for arg in args]), flush=True)
     return subprocess.run(args, check=True, **kwargs)
 
 def query_git_head(repo_path: str) -> str:

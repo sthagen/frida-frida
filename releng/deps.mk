@@ -1,4 +1,4 @@
-frida_deps_version = 20220827
+frida_deps_version = 20220905
 frida_bootstrap_version = 20220130
 
 
@@ -79,7 +79,7 @@ zlib_deps_for_build = \
 	$(NULL)
 
 libffi_name = libffi
-libffi_version = e8e5df901492dcafe79a7faae72a625e23aa49fc
+libffi_version = 3178f21efbb3e2ea7c01974e13c8b9c166c7d7c8
 libffi_url = $(frida_base_url)/libffi.git
 libffi_hash = $(NULL)
 libffi_recipe = meson
@@ -556,7 +556,7 @@ openssl_deps_for_build = \
 	$(NULL)
 
 v8_name = V8
-v8_version = 6338f7bfb99e793a65f562431ea05e9c9d76cf2b
+v8_version = 4c8d0641521d7a48a27baf13aa29b23dce237d5d
 v8_url = $(frida_base_url)/v8.git
 v8_hash = $(NULL)
 v8_recipe = meson
