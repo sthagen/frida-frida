@@ -156,7 +156,7 @@ if [ -z "$FRIDA_HOST" ]; then
 fi
 
 if [ "$host_os" == "android" ]; then
-  ndk_required=24
+  ndk_required=25
   if [ -n "$ANDROID_NDK_ROOT" ]; then
     if [ -f "$ANDROID_NDK_ROOT/source.properties" ]; then
       ndk_installed_version=$(grep Pkg.Revision "$ANDROID_NDK_ROOT/source.properties" | awk '{ split($NF, v, "."); print v[1]; }')
@@ -386,7 +386,7 @@ case $host_os in
         meson_host_cpu="armv6t"
         ;;
       armhf)
-        host_arch_flags="-march=armv7-a"
+        host_arch_flags="-march=armv7-a+fp"
         host_toolprefix="arm-linux-$frida_libc-"
 
         meson_host_cpu="armv7a"
@@ -424,8 +424,6 @@ case $host_os in
         host_toolprefix="s390x-linux-$frida_libc-"
         ;;
     esac
-
-    selected_cpp=$(read_toolchain_variable CPP ${host_toolprefix}cpp)
 
     libgcc_flags="-static-libgcc"
     libstdcxx_flags="-static-libstdc++"
@@ -534,7 +532,6 @@ case $host_os in
       "$FRIDA_RELENG/ar-wrapper-xcode.sh.in" > "$ar_wrapper"
     chmod +x "$ar_wrapper"
 
-    selected_cpp="$cc_wrapper -E"
     selected_cc="$cc_wrapper"
     selected_cxx="$cxx_wrapper"
     selected_objc="$cc_wrapper"
@@ -641,7 +638,6 @@ case $host_os in
       "$FRIDA_RELENG/ar-wrapper-xcode.sh.in" > "$ar_wrapper"
     chmod +x "$ar_wrapper"
 
-    selected_cpp="$cc_wrapper -E"
     selected_cc="$cc_wrapper"
     selected_cxx="$cxx_wrapper"
     selected_objc="$cc_wrapper"
@@ -688,6 +684,10 @@ case $host_os in
     case $build_os in
       macos)
         # NDK does not yet support Apple Silicon.
+        android_build_arch=x86_64
+        ;;
+      linux)
+        # Linux NDK only supports x86_64.
         android_build_arch=x86_64
         ;;
       *)
@@ -796,7 +796,6 @@ case $host_os in
       "$FRIDA_RELENG/driver-wrapper-android.sh.in" > "$cxx_wrapper"
     chmod +x "$cxx_wrapper"
 
-    selected_cpp="$cc_wrapper -E"
     selected_cc="$cc_wrapper"
     selected_cxx="$cxx_wrapper"
     selected_ld="${android_toolroot}/bin/ld"
@@ -831,7 +830,6 @@ case $host_os in
   freebsd)
     host_toolprefix="/usr/bin/"
 
-    selected_cpp=$(read_toolchain_variable CPP ${host_toolprefix}cpp)
     selected_cc=$(read_toolchain_variable CC ${host_toolprefix}clang)
     selected_cxx=$(read_toolchain_variable CXX ${host_toolprefix}clang++)
     selected_ld=$(read_toolchain_variable LD ${host_toolprefix}ld)
@@ -901,7 +899,6 @@ case $host_os in
     PATH="$qnx_toolchain_dir:$PATH"
 
     toolchain_flags="--sysroot=$qnx_sysroot $host_arch_flags $qnx_preprocessor_flags"
-    selected_cpp="$qnx_toolchain_prefix-cpp $toolchain_flags"
     selected_cc="$qnx_toolchain_prefix-gcc $toolchain_flags -static-libgcc"
     selected_cxx="$qnx_toolchain_prefix-g++ $toolchain_flags -static-libgcc -static-libstdc++"
     selected_ld="$qnx_toolchain_prefix-ld --sysroot=$qnx_sysroot"
@@ -1146,6 +1143,23 @@ meson_machine_file=${FRIDA_BUILD}/${FRIDA_ENV_NAME:-frida}-${host_os_arch}.txt
   fi
   echo "strip = '$strip_wrapper'"
   echo "pkgconfig = '$pkg_config_wrapper'"
+  if [ $host_os_arch != $build_os_arch ] && [ -n "$FRIDA_QEMU_SYSROOT" ]; then
+    case $host_arch in
+      arm|armeabi|armhf)
+        qemu=qemu-arm
+        ;;
+      armbe8)
+        qemu=qemu-armeb
+        ;;
+      arm64)
+        qemu=qemu-aarch64
+        ;;
+      *)
+        qemu=qemu-$host_arch
+        ;;
+    esac
+    echo "exe_wrapper = ['$qemu', '-L', '$FRIDA_QEMU_SYSROOT']"
+  fi
   echo ""
   echo "[built-in options]"
   echo "c_args = common_flags + [${meson_c_args}]"
