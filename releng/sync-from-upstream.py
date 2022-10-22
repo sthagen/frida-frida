@@ -31,9 +31,6 @@ upstreams = {
     "quickjs": "https://github.com/bellard/quickjs.git",
     "gn": "https://gn.googlesource.com/gn",
     "v8": "https://chromium.googlesource.com/v8/v8",
-    "v8/build": "https://chromium.googlesource.com/chromium/src/build",
-    "v8/buildtools": "https://chromium.googlesource.com/chromium/src/buildtools",
-    "v8/third_party/zlib": "https://chromium.googlesource.com/chromium/src/third_party/zlib",
     "capstone": "https://github.com/capstone-engine/capstone.git",
     "tinycc": "https://repo.or.cz/tinycc.git",
     "quickjs": "https://github.com/bellard/quickjs.git",
@@ -42,10 +39,6 @@ upstreams = {
 
 def sync(repo_path):
     repo_name = os.path.basename(repo_path)
-    if repo_name in ("build", "buildtools") and os.path.basename(os.path.dirname(repo_path)) == "v8":
-        repo_name = "v8/" + repo_name
-    elif repo_name == "zlib" and os.path.basename(os.path.dirname(repo_path)) == "third_party":
-        repo_name = "v8/third_party/zlib"
 
     patches_path = os.path.join(str(Path.home()), ".frida-sync-" + re.sub(r"[^\w\d]", "-", repo_path.lower()).lstrip("-"))
     if os.path.exists(patches_path):
@@ -59,7 +52,7 @@ def sync(repo_path):
 
         print("Synchronizing with {}".format(upstream_url))
 
-        subprocess.run(["git", "checkout", "master"], cwd=repo_path, capture_output=True, check=True)
+        subprocess.run(["git", "checkout", "main"], cwd=repo_path, capture_output=True, check=True)
         subprocess.run(["git", "pull"], cwd=repo_path, capture_output=True, check=True)
         result = subprocess.run(["git", "status"], cwd=repo_path, capture_output=True, check=True, encoding='utf-8')
         if not "working tree clean" in result.stdout:
@@ -79,10 +72,10 @@ def sync(repo_path):
         print("Upstream has {} new commits".format(len(new_entries)))
 
         print("Merging...")
-        subprocess.run(["git", "merge", "-s", "ours", "upstream/master"], cwd=repo_path, capture_output=True, check=True)
-        subprocess.run(["git", "checkout", "--detach", "upstream/master"], cwd=repo_path, capture_output=True, check=True)
-        subprocess.run(["git", "reset", "--soft", "master"], cwd=repo_path, capture_output=True, check=True)
-        subprocess.run(["git", "checkout", "master"], cwd=repo_path, capture_output=True, check=True)
+        subprocess.run(["git", "merge", "-s", "ours", "upstream/main"], cwd=repo_path, capture_output=True, check=True)
+        subprocess.run(["git", "checkout", "--detach", "upstream/main"], cwd=repo_path, capture_output=True, check=True)
+        subprocess.run(["git", "reset", "--soft", "main"], cwd=repo_path, capture_output=True, check=True)
+        subprocess.run(["git", "checkout", "main"], cwd=repo_path, capture_output=True, check=True)
         subprocess.run(["git", "commit", "--amend", "-C", "HEAD"], cwd=repo_path, capture_output=True, check=True)
 
         patches.save(patches_path)
@@ -121,7 +114,7 @@ def list_our_patches(repo_path):
     return (PendingPatches(items), base)
 
 def list_upstream_changes(repo_path, since):
-    return list(reversed(list_recent_commits(repo_path, since + "..upstream/master")))
+    return list(reversed(list_recent_commits(repo_path, since + "..upstream/main")))
 
 def list_recent_commits(repo_path, *args):
     result = subprocess.run(["git", "log", "--pretty=oneline", "--abbrev-commit", "--topo-order"] + list(args),

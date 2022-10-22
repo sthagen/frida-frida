@@ -1,4 +1,4 @@
-frida_deps_version = 20220924
+frida_deps_version = 20221021
 frida_bootstrap_version = 20220130
 
 
@@ -62,7 +62,7 @@ libiconv_deps_for_build = \
 	$(NULL)
 
 zlib_name = zlib
-zlib_version = 066bd9e6a3438af5ee5637a1200d194befd25b8a
+zlib_version = a912d314d0812518d4bbd715a981e6c9484b550d
 zlib_url = $(frida_base_url)/zlib.git
 zlib_recipe = meson
 zlib_patches = \
@@ -384,7 +384,7 @@ libpsl_deps_for_build = \
 	$(NULL)
 
 libxml2_name = libxml2
-libxml2_version = 769bc59b47daa8172bb57255ed9a4987937878d2
+libxml2_version = 35b8e0616b9f820c488eabd402e9d4097454997f
 libxml2_url = $(frida_base_url)/libxml2.git
 libxml2_recipe = meson
 libxml2_patches = \
@@ -399,7 +399,7 @@ libxml2_deps_for_build = \
 	$(NULL)
 
 libsoup_name = libsoup
-libsoup_version = f8683845a91d165aaaefa7db5cf3afbf95f06a60
+libsoup_version = 72e27e0dbcce1e448d31cbc06b0b17d42a277b85
 libsoup_url = $(frida_base_url)/libsoup.git
 libsoup_recipe = meson
 libsoup_patches = \
@@ -412,6 +412,7 @@ libsoup_options = \
 	-Dgnome=false \
 	-Dintrospection=disabled \
 	-Dvapi=disabled \
+	-Dexamples=disabled \
 	-Dtests=false \
 	-Dsysprof=disabled \
 	$(NULL)
@@ -493,7 +494,7 @@ openssl_deps_for_build = \
 	$(NULL)
 
 v8_name = V8
-v8_version = 77f6d44c01daaf20d22131b6cae57415d7ee3287
+v8_version = f0129b2e7d1ebdd93419f0f93435c7897561fa93
 v8_url = $(frida_base_url)/v8.git
 v8_recipe = meson
 v8_patches = \
@@ -503,6 +504,7 @@ v8_options = \
 	-Dembedder_string=-frida \
 	-Dsnapshot_compression=disabled \
 	-Dpointer_compression=disabled \
+	-Dshared_ro_heap=disabled \
 	-Dcppgc_caged_heap=disabled \
 	$(NULL)
 v8_deps = \

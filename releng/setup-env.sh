@@ -1040,23 +1040,67 @@ chmod 755 "$pkg_config_wrapper"
 
 env_rc=${FRIDA_BUILD}/${FRIDA_ENV_NAME:-frida}-env-${host_os_arch}.rc
 
-if [ "$FRIDA_ENV_SDK" != 'none' ]; then
-  env_path_sdk="$FRIDA_SDKROOT/bin/${build_os_arch}"
-  case ${build_os_arch} in
-    linux-x86_64)
-      env_path_sdk="$env_path_sdk:$FRIDA_SDKROOT/bin/linux-x86"
+qemu=""
+if [ $host_os_arch != $build_os_arch ] && [ -n "$FRIDA_QEMU_SYSROOT" ]; then
+  case $host_arch in
+    arm|armeabi|armhf)
+      qemu=qemu-arm
       ;;
-    macos-arm64*)
-      env_path_sdk="$env_path_sdk:$FRIDA_SDKROOT/bin/macos-x86_64"
+    armbe8)
+      qemu=qemu-armeb
+      ;;
+    arm64)
+      qemu=qemu-aarch64
+      ;;
+    *)
+      qemu=qemu-$host_arch
       ;;
   esac
-  env_path_sdk="$env_path_sdk:"
-else
-  env_path_sdk=""
+fi
+
+env_path_sdk=""
+if [ "$FRIDA_ENV_SDK" != 'none' ]; then
+  native_dir="$FRIDA_SDKROOT/bin/${build_os_arch}"
+
+  candidates=("$native_dir")
+  case ${build_os_arch} in
+    linux-x86_64)
+      candidates+=("$FRIDA_SDKROOT/bin/linux-x86")
+      ;;
+    macos-arm64)
+      candidates+=("$FRIDA_SDKROOT/bin/macos-arm64e")
+      candidates+=("$FRIDA_SDKROOT/bin/macos-x86_64")
+      ;;
+    macos-arm64e)
+      candidates+=("$FRIDA_SDKROOT/bin/macos-arm64")
+      candidates+=("$FRIDA_SDKROOT/bin/macos-x86_64")
+      ;;
+  esac
+
+  for candidate in "${candidates[@]}"; do
+    if [ -d "$candidate" ]; then
+      env_path_sdk="$candidate"
+      break
+    fi
+  done
+
+  if [ -z "$env_path_sdk" ] && [ -n "$qemu" ]; then
+    v8_mksnapshot="$FRIDA_SDKROOT/bin/${host_os_arch}/v8-mksnapshot-${host_os_arch}"
+    if [ -f "$v8_mksnapshot" ]; then
+      mkdir -p "$native_dir"
+      wrapper_script="$native_dir/v8-mksnapshot-${host_os_arch}"
+      (
+        echo "#!/bin/sh"
+        echo "\"$qemu\" -L \"$FRIDA_QEMU_SYSROOT\" \"$v8_mksnapshot\" \"\$@\""
+      ) > "$wrapper_script"
+      chmod +x "$wrapper_script"
+      env_path_sdk="$native_dir"
+    fi
+  fi
 fi
 
 (
-  echo "export PATH=\"${env_path_sdk}${FRIDA_TOOLROOT}/bin:\$PATH\""
+  echo "export PATH=\"${env_path_sdk:+"$env_path_sdk:"}${FRIDA_TOOLROOT}/bin:\$PATH\""
   echo "export PKG_CONFIG=\"$pkg_config_wrapper\""
   echo "export PKG_CONFIG_PATH=\"$pkg_config_path\""
   echo "export VALAC=\"$selected_valac\""
@@ -1068,8 +1112,21 @@ fi
   echo "export LDFLAGS=\"$selected_ldflags\""
   echo "export AR=\"$selected_ar\""
   echo "export NM=\"$selected_nm\""
+  echo "export RANLIB=\"$selected_ranlib\""
   echo "export STRIP=\"$strip_wrapper\""
 ) > $env_rc
+
+if [ -n "$selected_readelf" ]; then
+  echo "export READELF=\"$selected_readelf\"" >> $env_rc
+fi
+
+if [ -n "$selected_objcopy" ]; then
+  echo "export OBJCOPY=\"$selected_objcopy\"" >> $env_rc
+fi
+
+if [ -n "$selected_objdump" ]; then
+  echo "export OBJDUMP=\"$selected_objdump\"" >> $env_rc
+fi
 
 case $host_os in
   macos|ios)
@@ -1127,6 +1184,7 @@ meson_machine_file=${FRIDA_BUILD}/${FRIDA_ENV_NAME:-frida}-${host_os_arch}.txt
   echo "vala = '$selected_valac'"
   echo "ar = '$selected_ar'"
   echo "nm = '$selected_nm'"
+  echo "ranlib = '$selected_ranlib'"
   if [ -n "$selected_readelf" ]; then
     echo "readelf = '$selected_readelf'"
   fi
@@ -1147,21 +1205,7 @@ meson_machine_file=${FRIDA_BUILD}/${FRIDA_ENV_NAME:-frida}-${host_os_arch}.txt
   fi
   echo "strip = '$strip_wrapper'"
   echo "pkgconfig = '$pkg_config_wrapper'"
-  if [ $host_os_arch != $build_os_arch ] && [ -n "$FRIDA_QEMU_SYSROOT" ]; then
-    case $host_arch in
-      arm|armeabi|armhf)
-        qemu=qemu-arm
-        ;;
-      armbe8)
-        qemu=qemu-armeb
-        ;;
-      arm64)
-        qemu=qemu-aarch64
-        ;;
-      *)
-        qemu=qemu-$host_arch
-        ;;
-    esac
+  if [ -n "$qemu" ]; then
     echo "exe_wrapper = ['$qemu', '-L', '$FRIDA_QEMU_SYSROOT']"
   fi
   echo ""
