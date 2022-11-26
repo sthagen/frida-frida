@@ -1,4 +1,4 @@
-frida_deps_version = 20221021
+frida_deps_version = 20221111
 frida_bootstrap_version = 20220130
 
 
@@ -10,9 +10,13 @@ include releng/system.mk
 ifdef FRIDA_HOST
 host_os := $(shell echo $(FRIDA_HOST) | cut -f1 -d"-")
 host_arch := $(shell echo $(FRIDA_HOST) | cut -f2 -d"-")
+host_variant := $(shell echo $(FRIDA_HOST) | cut -f3 -d"-")
+host_machine := $(FRIDA_HOST)
 else
 host_os := $(build_os)
 host_arch := $(build_arch)
+host_variant :=
+host_machine := $(host_os)-$(host_arch)
 endif
 host_os_arch := $(host_os)-$(host_arch)
 
@@ -22,7 +26,7 @@ SHELL := $(shell which bash)
 
 
 ninja_name = Ninja
-ninja_version = v1.10.2
+ninja_version = v1.11.1
 ninja_url = https://github.com/ninja-build/ninja.git
 ninja_recipe = custom
 ninja_patches = \
@@ -35,21 +39,21 @@ ninja_deps = \
 ninja_deps_for_build = \
 	$(NULL)
 
-frida_elf_cleaner_name = frida-elf-cleaner
-frida_elf_cleaner_version = 821c6319f5545f092d815233df73fc253ca4c603
-frida_elf_cleaner_url = $(frida_base_url)/frida-elf-cleaner.git
-frida_elf_cleaner_recipe = meson
-frida_elf_cleaner_patches = \
+termux_elf_cleaner_name = termux-elf-cleaner
+termux_elf_cleaner_version = c30d16bc119dae547c51c16e1cab37b08e240f6a
+termux_elf_cleaner_url = $(frida_base_url)/termux-elf-cleaner.git
+termux_elf_cleaner_recipe = meson
+termux_elf_cleaner_patches = \
 	$(NULL)
-frida_elf_cleaner_options = \
+termux_elf_cleaner_options = \
 	$(NULL)
-frida_elf_cleaner_deps = \
+termux_elf_cleaner_deps = \
 	$(NULL)
-frida_elf_cleaner_deps_for_build = \
+termux_elf_cleaner_deps_for_build = \
 	$(NULL)
 
 libiconv_name = libiconv
-libiconv_version = 78d655ecc65b773b8e6642ea4be89e6f51d2c518
+libiconv_version = 9732614f0ee778d58acccd802ffe907a1b0a3e7a
 libiconv_url = $(frida_base_url)/libiconv.git
 libiconv_recipe = meson
 libiconv_patches = \
@@ -75,16 +79,33 @@ zlib_deps_for_build = \
 	$(NULL)
 
 libffi_name = libffi
-libffi_version = 3178f21efbb3e2ea7c01974e13c8b9c166c7d7c8
+libffi_version = 763cf41612c4a9ed98d764a5237acdb9f5337f2d
 libffi_url = $(frida_base_url)/libffi.git
 libffi_recipe = meson
 libffi_patches = \
 	$(NULL)
 libffi_options = \
+	-Dexe_static_tramp=false \
+	-Dtests=false \
 	$(NULL)
 libffi_deps = \
 	$(NULL)
 libffi_deps_for_build = \
+	$(NULL)
+
+pcre2_name = PCRE2
+pcre2_version = b47486922fdc3486499b310dc9cf903449700474
+pcre2_url = $(frida_base_url)/pcre2.git
+pcre2_recipe = meson
+pcre2_patches = \
+	$(NULL)
+pcre2_options = \
+	-Dgrep=false \
+	-Dtest=false \
+	$(NULL)
+pcre2_deps = \
+	$(NULL)
+pcre2_deps_for_build = \
 	$(NULL)
 
 selinux_name = SELinux Userspace
@@ -102,18 +123,20 @@ selinux_deps_for_build = \
 	$(NULL)
 
 glib_name = GLib
-glib_version = d777b428305503ded79c407204d4354cb1adec85
+glib_version = 531183c332f874ea2d792c4c250d4599c07e60c0
 glib_url = $(frida_base_url)/glib.git
 glib_recipe = meson
 glib_patches = \
 	$(NULL)
 glib_deps = \
-	zlib \
+	pcre2 \
 	libffi \
+	zlib \
 	$(NULL)
 glib_deps_for_build = \
 	$(NULL)
 glib_options = \
+	-Dcocoa=disabled \
 	-Dselinux=disabled \
 	-Dxattr=false \
 	-Dlibmount=disabled \
@@ -123,7 +146,7 @@ glib_options = \
 	-Dglib_checks=false \
 	--force-fallback-for=pcre \
 	$(NULL)
-ifeq ($(host_os), $(filter $(host_os),macos ios))
+ifeq ($(host_os), $(filter $(host_os),macos ios watchos tvos))
 # Use Apple's iconv by default to make our toolchain smaller.
 # Our SDK will pull in its own.
 glib_options += -Diconv=external
@@ -152,7 +175,7 @@ pkg_config_deps_for_build = \
 	$(NULL)
 
 vala_name = Vala
-vala_version = d07b689485b3c79116a569696d36ad7c0e299c02
+vala_version = 62ee2b101a5e5f37ce2a073fdb36e7f6ffb553d1
 vala_url = $(frida_base_url)/vala.git
 vala_recipe = meson
 vala_patches = \
@@ -196,7 +219,7 @@ libdwarf_deps_for_build = \
 	$(NULL)
 
 xz_name = XZ Utils
-xz_version = d4bb4f6c690844cf34c19104f5d766f066334be7
+xz_version = e70f5800ab5001c9509d374dbf3e7e6b866c43fe
 xz_url = $(frida_base_url)/xz.git
 xz_recipe = meson
 xz_patches = \
@@ -210,7 +233,7 @@ xz_deps_for_build = \
 	$(NULL)
 
 brotli_name = Brotli
-brotli_version = 8abf3188d1ef4bb8a633f894fec731bdd510ee49
+brotli_version = 9f51b6b95599466f46678381492834cdbde018f7
 brotli_url = $(frida_base_url)/brotli.git
 brotli_recipe = meson
 brotli_patches = \
@@ -223,7 +246,7 @@ brotli_deps_for_build = \
 	$(NULL)
 
 minizip_name = minizip-ng
-minizip_version = 535c1b9150e5e47b9a533b6f16787042da92ac63
+minizip_version = 5879653988db0e09f03952dcd94c1a608b4f681c
 minizip_url = $(frida_base_url)/minizip-ng.git
 minizip_recipe = meson
 minizip_patches = \
@@ -237,7 +260,7 @@ minizip_deps = \
 	$(NULL)
 minizip_deps_for_build = \
 	$(NULL)
-ifeq ($(host_os), $(filter $(host_os),macos ios android qnx))
+ifeq ($(host_os), $(filter $(host_os),macos ios watchos tvos android qnx))
 minizip_deps += libiconv
 endif
 ifeq ($(FRIDA_LIBC), uclibc)
@@ -245,7 +268,7 @@ minizip_deps += libiconv
 endif
 
 sqlite_name = SQLite
-sqlite_version = 6b876d7c22f10488477d106dfe51f3fbd4ce2d20
+sqlite_version = 87e0535610825f01a033948ba24bbe82db108470
 sqlite_url = $(frida_base_url)/sqlite.git
 sqlite_recipe = meson
 sqlite_patches = \
@@ -258,7 +281,7 @@ sqlite_deps_for_build = \
 	$(NULL)
 
 libunwind_name = libunwind
-libunwind_version = 12ac8fe53a2cb23501116a83ee59bd57da06bfe9
+libunwind_version = ccd3a38597a8397a3382e4e58fdabb26a6f0be13
 libunwind_url = $(frida_base_url)/libunwind.git
 libunwind_recipe = meson
 libunwind_patches = \
@@ -280,7 +303,7 @@ libunwind_deps_for_build = \
 	$(NULL)
 
 glib_networking_name = glib-networking
-glib_networking_version = 05d01a444f1738b3cfe2d583f49fdba1357e3184
+glib_networking_version = 65774565534e4430e631452af39acb279f4ce911
 glib_networking_url = $(frida_base_url)/glib-networking.git
 glib_networking_recipe = meson
 glib_networking_patches = \
@@ -290,7 +313,6 @@ glib_networking_options = \
 	-Dopenssl=enabled \
 	-Dlibproxy=disabled \
 	-Dgnome_proxy=disabled \
-	-Dstatic_modules=true \
 	$(NULL)
 glib_networking_deps = \
 	glib \
@@ -300,7 +322,7 @@ glib_networking_deps_for_build = \
 	$(NULL)
 
 libnice_name = libnice
-libnice_version = f9bf93471ab128821ceebf6bf3e4aa3e941af4b0
+libnice_version = 3c9e960fdb79229b672cbd9e600b4a4f1346409e
 libnice_url = $(frida_base_url)/libnice.git
 libnice_recipe = meson
 libnice_patches = \
@@ -321,7 +343,7 @@ libnice_deps_for_build = \
 	$(NULL)
 
 usrsctp_name = usrsctp
-usrsctp_version = e82326e75acb84668d13e804d1b8a1c1530e053e
+usrsctp_version = 42627714785294aef2bb31851bdeef5db15f5802
 usrsctp_url = $(frida_base_url)/usrsctp.git
 usrsctp_recipe = meson
 usrsctp_patches = \
@@ -337,12 +359,14 @@ usrsctp_deps_for_build = \
 	$(NULL)
 
 libgee_name = libgee
-libgee_version = 5b00fd64096b369a04fe04a7246e1927c3fedbd7
+libgee_version = b1db8f4e0ff72583e5f10205a6512befffa7b541
 libgee_url = $(frida_base_url)/libgee.git
 libgee_recipe = meson
 libgee_patches = \
 	$(NULL)
 libgee_options = \
+	-Ddisable-internal-asserts=true \
+	-Ddisable-introspection=true \
 	$(NULL)
 libgee_deps = \
 	glib \
@@ -351,7 +375,7 @@ libgee_deps_for_build = \
 	$(NULL)
 
 json_glib_name = JSON-GLib
-json_glib_version = a8d3ac569bfaf509e2a20b55ee4fd6b89851b8b1
+json_glib_version = 2b6b009cf138ac1cbc020e750d415c181a6947fe
 json_glib_url = $(frida_base_url)/json-glib.git
 json_glib_recipe = meson
 json_glib_patches = \
@@ -360,6 +384,7 @@ json_glib_options = \
 	-Dintrospection=disabled \
 	-Dgtk_doc=disabled \
 	-Dtests=false \
+	-Dnls=disabled \
 	$(NULL)
 json_glib_deps = \
 	glib \
@@ -368,14 +393,14 @@ json_glib_deps_for_build = \
 	$(NULL)
 
 libpsl_name = libpsl
-libpsl_version = dc7fce073dfb66f055ce91ebeff41f60b9db2ce4
+libpsl_version = 579d32b7daf5a0ab1d1fef2d7e15066f52d8d026
 libpsl_url = $(frida_base_url)/libpsl.git
 libpsl_recipe = meson
 libpsl_patches = \
 	$(NULL)
 libpsl_options = \
 	-Druntime=no \
-	-Dbuiltin=no \
+	-Dbuiltin=false \
 	-Dtests=false \
 	$(NULL)
 libpsl_deps = \
@@ -384,22 +409,36 @@ libpsl_deps_for_build = \
 	$(NULL)
 
 libxml2_name = libxml2
-libxml2_version = 35b8e0616b9f820c488eabd402e9d4097454997f
+libxml2_version = f09ad5551829b7f2df3666759e701644a0ea8558
 libxml2_url = $(frida_base_url)/libxml2.git
 libxml2_recipe = meson
 libxml2_patches = \
 	$(NULL)
 libxml2_options = \
+	-Dhttp=disabled \
+	-Dlzma=disabled \
+	-Dzlib=disabled \
 	$(NULL)
 libxml2_deps = \
-	zlib \
-	xz \
 	$(NULL)
 libxml2_deps_for_build = \
 	$(NULL)
 
+nghttp2_name = nghttp2
+nghttp2_version = 91a1324cc5bcedbf7cd9a51a61427b362ee08109
+nghttp2_url = $(frida_base_url)/nghttp2.git
+nghttp2_recipe = meson
+nghttp2_patches = \
+	$(NULL)
+nghttp2_options = \
+	$(NULL)
+nghttp2_deps = \
+	$(NULL)
+nghttp2_deps_for_build = \
+	$(NULL)
+
 libsoup_name = libsoup
-libsoup_version = 72e27e0dbcce1e448d31cbc06b0b17d42a277b85
+libsoup_version = c708c48810fa43f009d66a517269b6be4c81786f
 libsoup_url = $(frida_base_url)/libsoup.git
 libsoup_recipe = meson
 libsoup_patches = \
@@ -409,25 +448,25 @@ libsoup_options = \
 	-Dntlm=disabled \
 	-Dbrotli=enabled \
 	-Dtls_check=false \
-	-Dgnome=false \
 	-Dintrospection=disabled \
 	-Dvapi=disabled \
+	-Ddocs=disabled \
 	-Dexamples=disabled \
 	-Dtests=false \
 	-Dsysprof=disabled \
 	$(NULL)
 libsoup_deps = \
 	glib \
+	nghttp2 \
 	sqlite \
 	libpsl \
-	libxml2 \
 	brotli \
 	$(NULL)
 libsoup_deps_for_build = \
 	$(NULL)
 
 capstone_name = Capstone
-capstone_version = 6182ac33e0e5876bdf39f7e60416ce9fd73ce61a
+capstone_version = 22d317042ee4d251280d2960f5cf294433977db4
 capstone_url = $(frida_base_url)/capstone.git
 capstone_recipe = meson
 capstone_patches = \
@@ -481,12 +520,13 @@ tinycc_deps_for_build = \
 	$(NULL)
 
 openssl_name = OpenSSL
-openssl_version = bf78536ec5dc0f834f3bf61c11e12c8a70c52bd2
+openssl_version = bcb2d5a58ff3c3c6098eedd8bc77895ad27fed0e
 openssl_url = $(frida_base_url)/openssl.git
 openssl_recipe = meson
 openssl_patches = \
 	$(NULL)
 openssl_options = \
+	-Dcli=disabled \
 	$(NULL)
 openssl_deps = \
 	$(NULL)
@@ -494,7 +534,7 @@ openssl_deps_for_build = \
 	$(NULL)
 
 v8_name = V8
-v8_version = f0129b2e7d1ebdd93419f0f93435c7897561fa93
+v8_version = bda4a1a3ccc6231a389caebe309fc20fd7cf1650
 v8_url = $(frida_base_url)/v8.git
 v8_recipe = meson
 v8_patches = \
@@ -542,7 +582,7 @@ endef
 
 define make-meson-package-rules
 
-$(call make-base-package-rules,$1,$2,$(host_os_arch))
+$(call make-base-package-rules,$1,$2,$(host_machine))
 
 deps/.$1-stamp:
 	$$(call grab-and-prepare,$1)
@@ -550,7 +590,7 @@ deps/.$1-stamp:
 
 build/$2-%/manifest/$1.pkg: build/$2-env-%.rc deps/.$1-stamp \
 		$(foreach dep, $($(subst -,_,$1)_deps), build/$2-%/manifest/$(dep).pkg) \
-		$(foreach dep, $($(subst -,_,$1)_deps_for_build), build/$2-$(build_os_arch)/manifest/$(dep).pkg) \
+		$(foreach dep, $($(subst -,_,$1)_deps_for_build), build/$2-$(build_machine)/manifest/$(dep).pkg) \
 		releng/meson/meson.py
 	@$(call print-status,$1,Building)
 	@prefix=$$(shell pwd)/build/$2-$$*; \
@@ -559,10 +599,10 @@ build/$2-%/manifest/$1.pkg: build/$2-env-%.rc deps/.$1-stamp \
 	mkdir -p $$$$builddir; \
 	(set -x \
 		&& . build/$2-env-$$*.rc \
-		&& export PATH="$$(shell pwd)/build/$2-$(build_os_arch)/bin:$$$$PATH" \
+		&& export PATH="$$(shell pwd)/build/$2-$(build_machine)/bin:$$$$PATH" \
 		&& $(call print-status,$1,Configuring) \
-		&& meson_args="--native-file build/$2-$(build_os_arch).txt" \
-		&& if [ $$* != $(build_os_arch) ]; then \
+		&& meson_args="--native-file build/$2-$(build_machine).txt" \
+		&& if [ $$* != $(build_machine) ]; then \
 			meson_args="$$$$meson_args --cross-file build/$2-$$*.txt"; \
 		fi \
 		&& $(MESON) setup $$$$meson_args \
@@ -618,7 +658,7 @@ define make-build-incremental-package-rule
 
 $1: build/$2-$3/manifest/$1.pkg
 	builddir=build/$2-tmp-$3/$1; \
-	export PATH="$$(shell pwd)/build/$2-$(build_os_arch)/bin:$$$$PATH"; \
+	export PATH="$$(shell pwd)/build/$2-$(build_machine)/bin:$$$$PATH"; \
 	if [ -f deps/$1/meson.build ]; then \
 		. build/$2-env-$3.rc; \
 		$(MESON) install -C $$$$builddir; \
@@ -657,7 +697,7 @@ define make-symlinks-package-rule
 .PHONY: symlinks-$1
 
 symlinks-$1: build/$2-$3/manifest/$1.pkg
-	@sdkroot=build/sdk-$$(host_os_arch); \
+	@sdkroot=build/sdk-$$(host_machine); \
 	if [ -d $$$$sdkroot ]; then \
 		cd $$$$sdkroot; \
 		if [ -f manifest/$1.pkg ]; then \

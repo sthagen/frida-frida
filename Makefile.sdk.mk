@@ -3,7 +3,7 @@ include releng/deps.mk
 
 
 ifeq ($(FRIDA_V8), auto)
-FRIDA_V8 := $(shell echo $(host_os_arch) | grep -Evq "^(linux-mips|qnx-)" && echo "enabled" || echo "disabled")
+FRIDA_V8 := $(shell echo $(host_machine) | grep -Evq "^(linux-mips|qnx-)" && echo "enabled" || echo "disabled")
 endif
 
 
@@ -14,19 +14,21 @@ packages = \
 	minizip \
 	sqlite \
 	libffi \
+	pcre2 \
 	glib \
 	glib-networking \
 	libnice \
 	usrsctp \
 	libgee \
 	json-glib \
+	libxml2 \
 	libsoup \
 	capstone \
 	quickjs \
 	$(NULL)
 
 
-ifeq ($(host_os), $(filter $(host_os), macos ios))
+ifeq ($(host_os), $(filter $(host_os), macos ios watchos tvos))
 # Pull in iconv so our payloads only depend on libSystem.
 glib_deps += libiconv
 endif
@@ -45,7 +47,7 @@ endif
 
 ifneq ($(FRIDA_V8), disabled)
 packages += v8
-ifeq ($(host_os), $(filter $(host_os), macos ios))
+ifeq ($(host_os), $(filter $(host_os), macos ios watchos tvos))
 ifeq ($(FRIDA_ASAN), no)
 packages += libcxx
 endif
@@ -59,7 +61,7 @@ endif
 
 .PHONY: all clean distclean
 
-all: build/sdk-$(host_os)-$(host_arch).tar.bz2
+all: build/sdk-$(host_machine).tar.bz2
 	@echo ""
 	@echo -e "\\033[0;32mSuccess"'!'"\\033[0;39m Here's your SDK: \\033[1m$<\\033[0m"
 	@echo ""
@@ -71,10 +73,10 @@ clean: $(foreach pkg, $(call expand-packages,$(packages)), clean-$(pkg))
 distclean: $(foreach pkg, $(call expand-packages,$(packages)), distclean-$(pkg))
 
 
-build/sdk-$(host_os)-$(host_arch).tar.bz2: build/fs-tmp-$(host_os_arch)/.package-stamp
+build/sdk-$(host_machine).tar.bz2: build/fs-tmp-$(host_machine)/.package-stamp
 	@$(call print-status,📦,Compressing)
 	@tar \
-		-C build/fs-tmp-$(host_os_arch)/package \
+		-C build/fs-tmp-$(host_machine)/package \
 		-cjf $(shell pwd)/$@.tmp \
 		.
 	@mv $@.tmp $@
@@ -119,12 +121,12 @@ $(eval $(call make-package-rules,$(packages),fs))
 
 
 build/fs-env-%.rc:
-	@if [ $* != $(build_os_arch) ]; then \
+	@if [ $* != $(build_machine) ]; then \
 		cross=yes; \
 	else \
 		cross=no; \
 	fi; \
-	for os_arch in $(build_os_arch) $*; do \
+	for os_arch in $(build_machine) $*; do \
 		if [ ! -f build/fs-env-$$os_arch.rc ]; then \
 			FRIDA_HOST=$$os_arch \
 			FRIDA_CROSS=$$cross \

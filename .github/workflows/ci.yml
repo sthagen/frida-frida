@@ -4,9 +4,9 @@ on: push
 
 env:
   ANDROID_NDK_VERSION: r25b
-  NODE_TARGETS_DEFAULT: '10.0.0 12.0.0 14.0.0 16.0.0 18.0.0'
+  NODE_TARGETS_DEFAULT: '12.0.0 14.0.0 16.0.0 18.0.0 19.0.0'
   NODE_TARGETS_FREEBSD: '14.0.0 16.0.0 17.0.1'
-  ELECTRON_TARGETS_DEFAULT: '20.0.0'
+  ELECTRON_TARGETS_DEFAULT: '21.0.0'
   ELECTRON_TARGETS_FREEBSD: '16.0.0'
 
 jobs:
@@ -19,6 +19,8 @@ jobs:
       - package-macos
       - package-linux
       - package-ios
+      - package-watchos
+      - package-tvos
       - package-android
       - package-freebsd
       - package-qnx
@@ -264,8 +266,8 @@ jobs:
 
   package-apple-universal:
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: macos-latest
-    needs: [frida-macos, frida-ios]
+    runs-on: macos-12
+    needs: [frida-macos, frida-ios, frida-watchos, frida-tvos]
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
@@ -314,11 +316,6 @@ jobs:
         with:
           name: release-assets
           path: frida-gadget-macos-universal.dylib.xz
-      - name: Download frida-gadget for iOS/x86_64
-        uses: actions/download-artifact@v3
-        with:
-          name: frida-gadget-ios-x86_64
-          path: ios-x86_64/
       - name: Download frida-gadget for iOS/arm64
         uses: actions/download-artifact@v3
         with:
@@ -332,7 +329,6 @@ jobs:
       - name: Create universal frida-gadget for iOS
         run: |
           lipo \
-              ios-x86_64/frida-gadget.dylib \
               ios-arm64/frida-gadget.dylib \
               ios-arm64e/frida-gadget.dylib \
               -create -output frida-gadget-ios-universal.dylib
@@ -356,6 +352,99 @@ jobs:
         with:
           name: release-assets
           path: frida-gadget-ios-universal.dylib.xz
+      - name: Download frida-gadget for iOS/x86_64-simulator
+        uses: actions/download-artifact@v3
+        with:
+          name: frida-gadget-ios-x86_64-simulator
+          path: ios-x86_64-simulator/
+      - name: Download frida-gadget for iOS/arm64-simulator
+        uses: actions/download-artifact@v3
+        with:
+          name: frida-gadget-ios-arm64-simulator
+          path: ios-arm64-simulator/
+      - name: Create universal frida-gadget for iOS Simulator
+        run: |
+          lipo \
+              ios-x86_64-simulator/frida-gadget.dylib \
+              ios-arm64-simulator/frida-gadget.dylib \
+              -create -output frida-gadget-ios-simulator-universal.dylib
+          install_name_tool \
+              -id @executable_path/Frameworks/FridaGadget.dylib \
+              frida-gadget-ios-simulator-universal.dylib
+          codesign \
+              -f -s "$IOS_CERTID" \
+              frida-gadget-ios-simulator-universal.dylib
+      - name: Compress universal frida-gadget for iOS Simulator
+        run: xz -T 0 frida-gadget-ios-simulator-universal.dylib
+      - name: Upload universal frida-gadget for iOS Simulator
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-assets
+          path: frida-gadget-ios-simulator-universal.dylib.xz
+      - name: Download frida-gadget for watchOS/arm64
+        uses: actions/download-artifact@v3
+        with:
+          name: frida-gadget-watchos-arm64
+          path: watchos-arm64/
+      - name: Download frida-gadget for watchOS/arm64-simulator
+        uses: actions/download-artifact@v3
+        with:
+          name: frida-gadget-watchos-arm64-simulator
+          path: watchos-arm64-simulator/
+      - name: Package frida-gadget for watchOS
+        run: |
+          for arch in arm64 arm64-simulator; do
+            cp watchos-$arch/frida-gadget.dylib frida-gadget-watchos-$arch.dylib
+            install_name_tool \
+                -id @executable_path/Frameworks/FridaGadget.dylib \
+                frida-gadget-watchos-$arch.dylib
+            codesign \
+                -f -s "$WATCHOS_CERTID" \
+                frida-gadget-watchos-$arch.dylib
+            xz -T 0 frida-gadget-watchos-$arch.dylib
+          done
+      - name: Upload frida-gadget for watchOS/arm64
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-assets
+          path: frida-gadget-watchos-arm64.dylib.xz
+      - name: Upload frida-gadget for watchOS/arm64-simulator
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-assets
+          path: frida-gadget-watchos-arm64-simulator.dylib.xz
+      - name: Download frida-gadget for tvOS/arm64
+        uses: actions/download-artifact@v3
+        with:
+          name: frida-gadget-tvos-arm64
+          path: tvos-arm64/
+      - name: Download frida-gadget for tvOS/arm64-simulator
+        uses: actions/download-artifact@v3
+        with:
+          name: frida-gadget-tvos-arm64-simulator
+          path: tvos-arm64-simulator/
+      - name: Package frida-gadget for tvOS
+        run: |
+          for arch in arm64 arm64-simulator; do
+            cp tvos-$arch/frida-gadget.dylib frida-gadget-tvos-$arch.dylib
+            install_name_tool \
+                -id @executable_path/Frameworks/FridaGadget.dylib \
+                frida-gadget-tvos-$arch.dylib
+            codesign \
+                -f -s "$TVOS_CERTID" \
+                frida-gadget-tvos-$arch.dylib
+            xz -T 0 frida-gadget-tvos-$arch.dylib
+          done
+      - name: Upload frida-gadget for tvOS/arm64
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-assets
+          path: frida-gadget-tvos-arm64.dylib.xz
+      - name: Upload frida-gadget for tvOS/arm64-simulator
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-assets
+          path: frida-gadget-tvos-arm64-simulator.dylib.xz
       - name: Download Swift bindings for macOS/x86_64
         uses: actions/download-artifact@v3
         with:
@@ -556,7 +645,7 @@ jobs:
     needs: frida-ios
     strategy:
       matrix:
-        arch: [x86_64, arm64, arm64e, arm64eoabi]
+        arch: [arm64, arm64e, arm64eoabi, x86_64-simulator, arm64-simulator]
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
@@ -574,9 +663,56 @@ jobs:
         with:
           name: frida-core-devkit-ios-${{ matrix.arch }}
       - name: Package frida-portal
+        if: ${{ !endsWith(matrix.arch, '-simulator') }}
         uses: ./.github/actions/package-artifact-file
         with:
           name: frida-portal-ios-${{ matrix.arch }}
+
+  package-watchos:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: frida-watchos
+    strategy:
+      matrix:
+        arch: [arm64, arm64-simulator]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      - name: Package Gum devkit
+        uses: ./.github/actions/package-artifact-files-as-tarball
+        with:
+          name: frida-gum-devkit-watchos-${{ matrix.arch }}
+      - name: Package GumJS devkit
+        uses: ./.github/actions/package-artifact-files-as-tarball
+        with:
+          name: frida-gumjs-devkit-watchos-${{ matrix.arch }}
+      - name: Package Core devkit
+        uses: ./.github/actions/package-artifact-files-as-tarball
+        with:
+          name: frida-core-devkit-watchos-${{ matrix.arch }}
+
+  package-tvos:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: frida-tvos
+    strategy:
+      matrix:
+        arch: [arm64, arm64-simulator]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      - name: Package Gum devkit
+        uses: ./.github/actions/package-artifact-files-as-tarball
+        with:
+          name: frida-gum-devkit-tvos-${{ matrix.arch }}
+      - name: Package GumJS devkit
+        uses: ./.github/actions/package-artifact-files-as-tarball
+        with:
+          name: frida-gumjs-devkit-tvos-${{ matrix.arch }}
+      - name: Package Core devkit
+        uses: ./.github/actions/package-artifact-files-as-tarball
+        with:
+          name: frida-core-devkit-tvos-${{ matrix.arch }}
 
   package-android:
     if: startsWith(github.ref, 'refs/tags/')
@@ -882,6 +1018,7 @@ jobs:
           name: frida-gum-devkit-macos-${{ matrix.arch }}
           path: build/devkits/gum/
       - name: Upload gum-graft
+        if: matrix.arch != 'arm64e'
         uses: actions/upload-artifact@v3
         with:
           name: gum-graft-macos-${{ matrix.arch }}
@@ -965,6 +1102,7 @@ jobs:
       - name: Build Node.js bindings
         if: matrix.arch != 'arm64e'
         run: |
+          rm -rf $TMPDIR/prebuild
           . build/frida-env-macos-${{ matrix.arch }}.rc
           case ${{ matrix.arch }} in
             x86_64)
@@ -1200,7 +1338,7 @@ jobs:
     needs: sdk-ios
     strategy:
       matrix:
-        arch: [x86_64, arm64, arm64e, arm64eoabi]
+        arch: [arm64, arm64e, arm64eoabi, x86_64-simulator, arm64-simulator]
       fail-fast: false
     runs-on: macos-11
     env:
@@ -1247,21 +1385,25 @@ jobs:
           name: frida-core-devkit-ios-${{ matrix.arch }}
           path: build/devkits/core/
       - name: Upload frida-server
+        if: ${{ !endsWith(matrix.arch, '-simulator') }}
         uses: actions/upload-artifact@v3
         with:
           name: frida-server-ios-${{ matrix.arch }}
           path: build/frida-ios-${{ matrix.arch }}/usr/bin/frida-server
       - name: Upload frida-portal
+        if: ${{ !endsWith(matrix.arch, '-simulator') }}
         uses: actions/upload-artifact@v3
         with:
           name: frida-portal-ios-${{ matrix.arch }}
           path: build/frida-ios-${{ matrix.arch }}/usr/bin/frida-portal
       - name: Upload frida-inject
+        if: ${{ !endsWith(matrix.arch, '-simulator') }}
         uses: actions/upload-artifact@v3
         with:
           name: frida-inject-ios-${{ matrix.arch }}
           path: build/frida-ios-${{ matrix.arch }}/usr/bin/frida-inject
       - name: Upload frida-agent
+        if: ${{ !endsWith(matrix.arch, '-simulator') }}
         uses: actions/upload-artifact@v3
         with:
           name: frida-agent-ios-${{ matrix.arch }}
@@ -1271,6 +1413,118 @@ jobs:
         with:
           name: frida-gadget-ios-${{ matrix.arch }}
           path: build/frida-ios-${{ matrix.arch }}/usr/lib/frida/frida-gadget.dylib
+      - name: Tear down environment
+        uses: ./.github/actions/teardown-macos-env
+
+  frida-watchos:
+    needs: sdk-watchos
+    strategy:
+      matrix:
+        arch: [arm64, arm64-simulator]
+      fail-fast: false
+    runs-on: macos-12
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+      - name: Set up environment
+        uses: ./.github/actions/setup-macos-env
+        with:
+          certificates-p12: ${{ secrets.APPLE_CERTIFICATES_P12 }}
+          certificates-password: ${{ secrets.APPLE_CERTIFICATES_PASSWORD }}
+          keychain-password: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+          aws-access-key-id: ${{ secrets.S3_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.S3_SECRET_KEY }}
+          cloudflare-email: ${{ secrets.CF_EMAIL }}
+          cloudflare-token: ${{ secrets.CF_TOKEN }}
+      - name: Build Gum libraries and tools
+        run: make build/frida_thin-watchos-${{ matrix.arch }}/lib/pkgconfig/frida-gum-1.0.pc
+      - name: Build Gum devkit
+        run: releng/devkit.py -t frida-gum watchos-${{ matrix.arch }} build/devkits/gum
+      - name: Upload Gum devkit
+        uses: actions/upload-artifact@v3
+        with:
+          name: frida-gum-devkit-watchos-${{ matrix.arch }}
+          path: build/devkits/gum/
+      - name: Build GumJS devkit
+        run: releng/devkit.py -t frida-gumjs watchos-${{ matrix.arch }} build/devkits/gumjs
+      - name: Upload GumJS devkit
+        uses: actions/upload-artifact@v3
+        with:
+          name: frida-gumjs-devkit-watchos-${{ matrix.arch }}
+          path: build/devkits/gumjs/
+      - name: Build Core libraries and tools
+        run: make build/frida_thin-watchos-${{ matrix.arch }}/lib/pkgconfig/frida-core-1.0.pc
+      - name: Build Core devkit
+        run: releng/devkit.py -t frida-core watchos-${{ matrix.arch }} build/devkits/core
+      - name: Upload Core devkit
+        uses: actions/upload-artifact@v3
+        with:
+          name: frida-core-devkit-watchos-${{ matrix.arch }}
+          path: build/devkits/core/
+      - name: Upload frida-gadget
+        uses: actions/upload-artifact@v3
+        with:
+          name: frida-gadget-watchos-${{ matrix.arch }}
+          path: build/frida_thin-watchos-${{ matrix.arch }}/lib/frida/frida-gadget.dylib
+      - name: Tear down environment
+        uses: ./.github/actions/teardown-macos-env
+
+  frida-tvos:
+    needs: sdk-tvos
+    strategy:
+      matrix:
+        arch: [arm64, arm64-simulator]
+      fail-fast: false
+    runs-on: macos-12
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+      - name: Set up environment
+        uses: ./.github/actions/setup-macos-env
+        with:
+          certificates-p12: ${{ secrets.APPLE_CERTIFICATES_P12 }}
+          certificates-password: ${{ secrets.APPLE_CERTIFICATES_PASSWORD }}
+          keychain-password: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+          aws-access-key-id: ${{ secrets.S3_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.S3_SECRET_KEY }}
+          cloudflare-email: ${{ secrets.CF_EMAIL }}
+          cloudflare-token: ${{ secrets.CF_TOKEN }}
+      - name: Build Gum libraries and tools
+        run: make build/frida_thin-tvos-${{ matrix.arch }}/lib/pkgconfig/frida-gum-1.0.pc
+      - name: Build Gum devkit
+        run: releng/devkit.py -t frida-gum tvos-${{ matrix.arch }} build/devkits/gum
+      - name: Upload Gum devkit
+        uses: actions/upload-artifact@v3
+        with:
+          name: frida-gum-devkit-tvos-${{ matrix.arch }}
+          path: build/devkits/gum/
+      - name: Build GumJS devkit
+        run: releng/devkit.py -t frida-gumjs tvos-${{ matrix.arch }} build/devkits/gumjs
+      - name: Upload GumJS devkit
+        uses: actions/upload-artifact@v3
+        with:
+          name: frida-gumjs-devkit-tvos-${{ matrix.arch }}
+          path: build/devkits/gumjs/
+      - name: Build Core libraries and tools
+        run: make build/frida_thin-tvos-${{ matrix.arch }}/lib/pkgconfig/frida-core-1.0.pc
+      - name: Build Core devkit
+        run: releng/devkit.py -t frida-core tvos-${{ matrix.arch }} build/devkits/core
+      - name: Upload Core devkit
+        uses: actions/upload-artifact@v3
+        with:
+          name: frida-core-devkit-tvos-${{ matrix.arch }}
+          path: build/devkits/core/
+      - name: Upload frida-gadget
+        uses: actions/upload-artifact@v3
+        with:
+          name: frida-gadget-tvos-${{ matrix.arch }}
+          path: build/frida_thin-tvos-${{ matrix.arch }}/lib/frida/frida-gadget.dylib
       - name: Tear down environment
         uses: ./.github/actions/teardown-macos-env
 
@@ -1622,7 +1876,7 @@ jobs:
     needs: toolchain-macos
     strategy:
       matrix:
-        arch: [x86_64, arm64, arm64e, arm64eoabi]
+        arch: [arm64, arm64e, arm64eoabi, x86_64-simulator, arm64-simulator]
       fail-fast: false
     runs-on: macos-11
     env:
@@ -1641,6 +1895,54 @@ jobs:
           cloudflare-token: ${{ secrets.CF_TOKEN }}
       - name: Roll SDK
         run: releng/deps.py roll sdk ios-${{ matrix.arch }} --activate
+      - name: Tear down environment
+        uses: ./.github/actions/teardown-macos-env
+
+  sdk-watchos:
+    needs: toolchain-macos
+    strategy:
+      matrix:
+        arch: [arm64, arm64-simulator]
+      fail-fast: false
+    runs-on: macos-12
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup-macos-env
+        with:
+          certificates-p12: ${{ secrets.APPLE_CERTIFICATES_P12 }}
+          certificates-password: ${{ secrets.APPLE_CERTIFICATES_PASSWORD }}
+          aws-access-key-id: ${{ secrets.S3_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.S3_SECRET_KEY }}
+          cloudflare-email: ${{ secrets.CF_EMAIL }}
+          cloudflare-token: ${{ secrets.CF_TOKEN }}
+      - name: Roll SDK
+        run: releng/deps.py roll sdk watchos-${{ matrix.arch }} --activate
+      - name: Tear down environment
+        uses: ./.github/actions/teardown-macos-env
+
+  sdk-tvos:
+    needs: toolchain-macos
+    strategy:
+      matrix:
+        arch: [arm64, arm64-simulator]
+      fail-fast: false
+    runs-on: macos-12
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup-macos-env
+        with:
+          certificates-p12: ${{ secrets.APPLE_CERTIFICATES_P12 }}
+          certificates-password: ${{ secrets.APPLE_CERTIFICATES_PASSWORD }}
+          aws-access-key-id: ${{ secrets.S3_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.S3_SECRET_KEY }}
+          cloudflare-email: ${{ secrets.CF_EMAIL }}
+          cloudflare-token: ${{ secrets.CF_TOKEN }}
+      - name: Roll SDK
+        run: releng/deps.py roll sdk tvos-${{ matrix.arch }} --activate
       - name: Tear down environment
         uses: ./.github/actions/teardown-macos-env
 

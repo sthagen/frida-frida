@@ -11,7 +11,8 @@ def make_gnome_url(repo_name):
 
 upstreams = {
     "meson": "https://github.com/mesonbuild/meson.git",
-    "frida-elf-cleaner": "https://github.com/termux/termux-elf-cleaner.git",
+    "termux-elf-cleaner": "https://github.com/termux/termux-elf-cleaner.git",
+    "libiconv": "https://git.savannah.gnu.org/git/libiconv.git",
     "zlib": "https://github.com/madler/zlib.git",
     "brotli": "https://github.com/google/brotli.git",
     "minizip": "https://github.com/zlib-ng/minizip-ng.git",
@@ -27,6 +28,7 @@ upstreams = {
     "libxml2": make_gnome_url("libxml2"),
     "libsoup": make_gnome_url("libsoup"),
     "vala": make_gnome_url("vala"),
+    "xz": "https://git.tukaani.org/xz.git",
     "pkg-config": "https://gitlab.freedesktop.org/pkg-config/pkg-config.git",
     "quickjs": "https://github.com/bellard/quickjs.git",
     "gn": "https://gn.googlesource.com/gn",
