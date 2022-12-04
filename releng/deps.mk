@@ -1,4 +1,4 @@
-frida_deps_version = 20221111
+frida_deps_version = 20221202
 frida_bootstrap_version = 20220130
 
 
@@ -123,7 +123,7 @@ selinux_deps_for_build = \
 	$(NULL)
 
 glib_name = GLib
-glib_version = 531183c332f874ea2d792c4c250d4599c07e60c0
+glib_version = 99ec1f987dfbc9b0ab45ac32dd98464cc023cd42
 glib_url = $(frida_base_url)/glib.git
 glib_recipe = meson
 glib_patches = \
@@ -375,7 +375,7 @@ libgee_deps_for_build = \
 	$(NULL)
 
 json_glib_name = JSON-GLib
-json_glib_version = 2b6b009cf138ac1cbc020e750d415c181a6947fe
+json_glib_version = fd29bf6dda9dcf051d2d98838e3086566bf91411
 json_glib_url = $(frida_base_url)/json-glib.git
 json_glib_recipe = meson
 json_glib_patches = \
@@ -438,7 +438,7 @@ nghttp2_deps_for_build = \
 	$(NULL)
 
 libsoup_name = libsoup
-libsoup_version = c708c48810fa43f009d66a517269b6be4c81786f
+libsoup_version = 071bebc4a85357d11c8d4b9265dc8f723216a684
 libsoup_url = $(frida_base_url)/libsoup.git
 libsoup_recipe = meson
 libsoup_patches = \
