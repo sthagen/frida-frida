@@ -1,4 +1,4 @@
-frida_deps_version = 20221202
+frida_deps_version = 20221210
 frida_bootstrap_version = 20220130
 
 
@@ -123,7 +123,7 @@ selinux_deps_for_build = \
 	$(NULL)
 
 glib_name = GLib
-glib_version = 99ec1f987dfbc9b0ab45ac32dd98464cc023cd42
+glib_version = 805e42d63aa17f58b90a57c71f4b1896f154a535
 glib_url = $(frida_base_url)/glib.git
 glib_recipe = meson
 glib_patches = \
@@ -303,7 +303,7 @@ libunwind_deps_for_build = \
 	$(NULL)
 
 glib_networking_name = glib-networking
-glib_networking_version = 65774565534e4430e631452af39acb279f4ce911
+glib_networking_version = 54a06f8399cac1fbdddd130790475a45a8124304
 glib_networking_url = $(frida_base_url)/glib-networking.git
 glib_networking_recipe = meson
 glib_networking_patches = \
@@ -313,6 +313,7 @@ glib_networking_options = \
 	-Dopenssl=enabled \
 	-Dlibproxy=disabled \
 	-Dgnome_proxy=disabled \
+	-Dtests=false \
 	$(NULL)
 glib_networking_deps = \
 	glib \
