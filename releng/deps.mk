@@ -1,5 +1,5 @@
-frida_deps_version = 20221210
-frida_bootstrap_version = 20220130
+frida_deps_version = 20230426
+frida_bootstrap_version = 20221210
 
 
 frida_base_url = https://github.com/frida
@@ -79,7 +79,7 @@ zlib_deps_for_build = \
 	$(NULL)
 
 libffi_name = libffi
-libffi_version = 763cf41612c4a9ed98d764a5237acdb9f5337f2d
+libffi_version = 938b07aa8280bcc4f92f08a0fdbb4ad81024bde0
 libffi_url = $(frida_base_url)/libffi.git
 libffi_recipe = meson
 libffi_patches = \
@@ -109,7 +109,7 @@ pcre2_deps_for_build = \
 	$(NULL)
 
 selinux_name = SELinux Userspace
-selinux_version = 9c7ba053bb075cace088d268fda400f6bc4ab14c
+selinux_version = 7d03ec4cd2e08e3bb0c2390a6e68beb3978e2816
 selinux_url = $(frida_base_url)/selinux.git
 selinux_recipe = meson
 selinux_patches = \
@@ -123,7 +123,7 @@ selinux_deps_for_build = \
 	$(NULL)
 
 glib_name = GLib
-glib_version = 805e42d63aa17f58b90a57c71f4b1896f154a535
+glib_version = f3af6c29d39eb7590425d1b22bae29ff6a0ebb6f
 glib_url = $(frida_base_url)/glib.git
 glib_recipe = meson
 glib_patches = \
@@ -426,7 +426,7 @@ libxml2_deps_for_build = \
 	$(NULL)
 
 nghttp2_name = nghttp2
-nghttp2_version = 91a1324cc5bcedbf7cd9a51a61427b362ee08109
+nghttp2_version = ae13d24ea59c30e36ca53d1b22c4e664588d0445
 nghttp2_url = $(frida_base_url)/nghttp2.git
 nghttp2_recipe = meson
 nghttp2_patches = \
@@ -491,7 +491,7 @@ capstone_archs := $(shell echo $(host_arch) | sed $(sed_regex_option) \
 	)
 
 quickjs_name = QuickJS
-quickjs_version = a3303a2bec40fb55df6de5e94e53a7a67e7dbfb0
+quickjs_version = c81f05c9859cea5f83a80057416a0c7affe9b876
 quickjs_url = $(frida_base_url)/quickjs.git
 quickjs_recipe = meson
 quickjs_patches = \
