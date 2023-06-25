@@ -1,4 +1,4 @@
-frida_deps_version = 20230426
+frida_deps_version = 20230622
 frida_bootstrap_version = 20221210
 
 
@@ -467,13 +467,14 @@ libsoup_deps_for_build = \
 	$(NULL)
 
 capstone_name = Capstone
-capstone_version = 22d317042ee4d251280d2960f5cf294433977db4
+capstone_version = 6ee04f102cbfb6f63c5401a4f346fff87448f97e
 capstone_url = $(frida_base_url)/capstone.git
 capstone_recipe = meson
 capstone_patches = \
 	$(NULL)
 capstone_options = \
-	-Darchs=$(capstone_archs) \
+	-Darchs=all \
+	-Duse_arch_registration=true \
 	-Dx86_att_disable=true \
 	-Dcli=disabled \
 	$(NULL)
@@ -481,14 +482,6 @@ capstone_deps = \
 	$(NULL)
 capstone_deps_for_build = \
 	$(NULL)
-capstone_archs := $(shell echo $(host_arch) | sed $(sed_regex_option) \
-		-e 's,^x86_64$$,x86,' \
-		-e 's,^arm[^0-9].+,arm,' \
-		-e 's,^arm64e$$,arm64,' \
-		-e 's,^arm64eoabi$$,arm64,' \
-		-e 's,^mips.*,mips,' \
-		-e 's,^s390x$$,sysz,' \
-	)
 
 quickjs_name = QuickJS
 quickjs_version = c81f05c9859cea5f83a80057416a0c7affe9b876
