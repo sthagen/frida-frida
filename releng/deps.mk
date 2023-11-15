@@ -123,7 +123,7 @@ selinux_deps_for_build = \
 	$(NULL)
 
 glib_name = GLib
-glib_version = f3af6c29d39eb7590425d1b22bae29ff6a0ebb6f
+glib_version = 638b2073275bf1fde72b02bf507ef66c1f79743b
 glib_url = $(frida_base_url)/glib.git
 glib_recipe = meson
 glib_patches = \
@@ -453,7 +453,7 @@ nghttp2_deps_for_build = \
 	$(NULL)
 
 libsoup_name = libsoup
-libsoup_version = 071bebc4a85357d11c8d4b9265dc8f723216a684
+libsoup_version = ecf0161ebfd752746a2f305ca1f506948853526e
 libsoup_url = $(frida_base_url)/libsoup.git
 libsoup_recipe = meson
 libsoup_patches = \
@@ -528,7 +528,7 @@ tinycc_deps_for_build = \
 	$(NULL)
 
 openssl_name = OpenSSL
-openssl_version = dbd3351e56b53b2e0a4ff934e56d7fbad51a4ccb
+openssl_version = 9dd243646cd11180625433c748e914768d9863f4
 openssl_url = $(frida_base_url)/openssl.git
 openssl_recipe = meson
 openssl_patches = \
@@ -536,6 +536,9 @@ openssl_patches = \
 openssl_options = \
 	-Dcli=disabled \
 	$(NULL)
+ifeq ($(host_variant), mingw32)
+openssl_options += -Dasm=disabled
+endif
 openssl_deps = \
 	$(NULL)
 openssl_deps_for_build = \
