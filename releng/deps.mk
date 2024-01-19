@@ -1,5 +1,5 @@
-frida_deps_version = 20231124
-frida_bootstrap_version = 20231116
+frida_deps_version = 20240118
+frida_bootstrap_version = 20231124
 
 
 frida_base_url = https://github.com/frida
@@ -504,7 +504,7 @@ libsoup_deps_for_build = \
 	$(NULL)
 
 capstone_name = Capstone
-capstone_version = 6ee04f102cbfb6f63c5401a4f346fff87448f97e
+capstone_version = e98746112da0a40b2ccd0340db0d20cca5f97950
 capstone_url = $(frida_base_url)/capstone.git
 capstone_recipe = meson
 capstone_patches = \
@@ -521,7 +521,7 @@ capstone_deps_for_build = \
 	$(NULL)
 
 quickjs_name = QuickJS
-quickjs_version = c81f05c9859cea5f83a80057416a0c7affe9b876
+quickjs_version = d2c302c54069cbd070a01162ca022cbc716b655c
 quickjs_url = $(frida_base_url)/quickjs.git
 quickjs_recipe = meson
 quickjs_patches = \
