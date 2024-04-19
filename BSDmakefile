@@ -1,6 +1,6 @@
-help: .DEFAULT
+all: .DEFAULT
 
 .DEFAULT:
 	@gmake ${.MAKEFLAGS} ${.TARGETS}
 
-.PHONY: help
+.PHONY: all
