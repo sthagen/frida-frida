@@ -6,6 +6,7 @@ project('frida', 'c',
 python = import('python').find_installation()
 
 is_cross_build = meson.is_cross_build()
+is_watchos = host_machine.subsystem().split('-')[0] == 'watchos'
 
 gum_options = [
   'frida_version=' + meson.project_version(),
@@ -16,10 +17,13 @@ subproject('frida-gum', default_options: gum_options)
 
 core_options = [
   'frida_version=' + meson.project_version(),
-  'portal=' + (get_option('portal').allowed() ? 'enabled' : 'disabled'),
 ]
-foreach component : ['gadget', 'server', 'inject']
-  core_options += component + '=' + (get_option(component).disable_auto_if(not is_cross_build).allowed() ? 'enabled' : 'disabled')
+core_options += 'gadget=' + (get_option('gadget').disable_auto_if(not is_cross_build).allowed() ? 'enabled' : 'disabled')
+foreach component : ['server', 'portal', 'inject']
+  core_options += component + '=' + (get_option(component)
+    .disable_auto_if(not is_cross_build)
+    .disable_auto_if(is_watchos)
+    .allowed() ? 'enabled' : 'disabled')
 endforeach
 subproject('frida-core', default_options: core_options)
 
@@ -64,13 +68,16 @@ if get_option('frida_swift') \
   subproject('frida-swift')
 endif
 
-qt6_dep = dependency('qt6', modules: ['Core'], required: false)
 if get_option('frida_qml') \
     .disable_auto_if(is_cross_build) \
-    .disable_auto_if(not qt6_dep.found()) \
     .allowed()
-  run_command(ensure_submodules, 'frida-qml', check: true)
-  subproject('frida-qml')
+  qt6_dep = dependency('qt6', modules: ['Core'], required: false)
+  if get_option('frida_qml') \
+      .disable_auto_if(not qt6_dep.found()) \
+      .allowed()
+    run_command(ensure_submodules, 'frida-qml', check: true)
+    subproject('frida-qml')
+  endif
 endif
 
 if get_option('frida_tools') \
