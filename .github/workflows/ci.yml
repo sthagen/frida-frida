@@ -811,7 +811,7 @@ jobs:
           architecture: ${{ matrix.arch == 'x86_64' && 'x64' || matrix.arch }}
       - name: Install Qt
         if: ${{ contains(matrix.arch, '64') }}
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: '6.7.0'
           cache: true
@@ -982,7 +982,7 @@ jobs:
           cloudflare-token: ${{ secrets.CF_TOKEN }}
       - name: Install Qt
         if: matrix.arch != 'arm64e'
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: '6.7.0'
           cache: true
@@ -1137,14 +1137,15 @@ jobs:
       - name: Configure qemu-user
         if: ${{ !startsWith(matrix.arch, 'x86') }}
         run: echo "FRIDA_QEMU_SYSROOT=/opt/x-tools/$XTOOLS_HOST/$XTOOLS_HOST/sysroot" >> $GITHUB_ENV
-      - name: Install packages needed for installing Qt
+      - name: Prepare environment for installing Qt
         if: matrix.arch == 'x86_64'
         run: |
           apt-get update
           apt-get install -y sudo
+          echo "PIP_BREAK_SYSTEM_PACKAGES=1" >> $GITHUB_ENV
       - name: Install Qt
         if: matrix.arch == 'x86_64'
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: '6.7.0'
           cache: true
