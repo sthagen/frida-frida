@@ -23,6 +23,8 @@ jobs:
       - package-apple-universal
       - assemble-ios-assets
       - assemble-tvos-assets
+    permissions:
+      id-token: write
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -107,31 +109,23 @@ jobs:
       - name: Publish Python bindings to pypi.org
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
           packages-dir: build/python-packages/
       - name: Publish .deb packages
         uses: ./.github/actions/publish-debs
         with:
           site: production
-      - name: Setup npm authentication
-        uses: actions/setup-node@v4
-        with:
-          registry-url: "https://registry.npmjs.org"
+      - name: Trigger frida-node publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish Node.js bindings to npm
+          GH_TOKEN: ${{ secrets.FRIDA_NODE_BOT_PAT }}
+          FRIDA_VERSION: ${{ env.FRIDA_VERSION }}
         run: |
-          export FRIDA_DEPS=$PWD/deps
-          cd subprojects/frida-node/subprojects
-          ln -s ../../frida-gum .
-          ln -s ../../frida-core .
-          cd ..
-          git submodule update --init --recursive
-          npm version $FRIDA_VERSION
-          ./configure -- -Dfrida-core:compat=disabled
-          make
-          npm install
-          npm publish
+          gh api repos/frida/frida-node/dispatches \
+              -f event_type=publish-prod-started \
+              -f client_payload[frida_version]="${FRIDA_VERSION}"
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
       - name: Publish frida-gadget-ios to npm
         run: |
           cd releng/modules/frida-gadget-ios
@@ -155,6 +149,8 @@ jobs:
       - frida-linux
       - assemble-ios-assets
       - assemble-tvos-assets
+    permissions:
+      id-token: write
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -183,7 +179,6 @@ jobs:
       - name: Publish Python bindings to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           packages-dir: build/python-packages/
           repository-url: https://test.pypi.org/legacy/
       - name: Publish .deb packages
